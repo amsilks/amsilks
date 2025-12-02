@@ -38,6 +38,8 @@
         .btn-add { background-color: #28a745; width: 100%; padding: 12px; font-size: 16px; }
         
         .btn-inv { background-color: #0056b3; } 
+        .btn-quote { background-color: #ffc107; color: #333; } 
+        .btn-receipt { background-color: #20c997; color: white; } /* Receipt Button */
         .btn-po { background-color: #e67e22; } 
         .btn-prod { background-color: #6f42c1; } 
         .btn-edit { background-color: #17a2b8; padding: 5px 10px; font-size: 12px; margin-right: 5px; }
@@ -50,23 +52,33 @@
         .bottom-actions { margin-top: 40px; padding-top: 20px; border-top: 2px solid #eee; }
         .btn-save { background-color: #17a2b8; padding: 15px; font-size: 18px; width: 100%; margin-bottom: 10px; }
         .btn-history { background-color: #343a40; padding: 12px; flex: 1; }
-        .btn-sync { background-color: #6610f2; padding: 12px; flex: 1; margin-top: 10px; /* Reset margin */ }
+        .btn-sync { background-color: #6610f2; padding: 12px; flex: 1; margin-top: 10px; }
         .btn-clear { background-color: #dc3545; padding: 12px; width: 100%; margin-top: 15px; }
         
-        .admin-controls { display: none; gap: 10px; width: 100%; } /* Container for admin buttons */
-        .admin-only-btn { display: none; } /* For individual buttons like PO */
+        .admin-controls { display: none; gap: 10px; width: 100%; }
+        .admin-only-btn { display: none; }
 
         .hidden-input { display: none; margin-top: 5px; }
 
         #savedListArea { display: none; background: #fff8e1; padding: 15px; border: 1px solid #ffeeba; margin-bottom: 20px; border-radius: 5px; }
         .saved-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #ddd; background: white; margin-bottom: 5px; }
         
+        /* RECEIPT STYLES */
+        .receipt-box { display: none; border: 2px solid #333; padding: 20px; margin-top: 20px; background: #fff; position: relative; }
+        .receipt-row { display: flex; margin-bottom: 15px; align-items: baseline; }
+        .receipt-label { font-weight: bold; width: 150px; min-width: 120px; color: #555; }
+        .receipt-value { border-bottom: 1px dotted #333; flex: 1; padding-bottom: 5px; font-weight: 500; font-size: 18px; color: #000; }
+        .receipt-amount-box { border: 2px solid #333; padding: 10px 20px; font-size: 24px; font-weight: bold; display: inline-block; margin-top: 20px; background: #f8f9fa; }
+        .receipt-footer { display: flex; justify-content: space-between; margin-top: 50px; }
+        .receipt-sig { border-top: 1px solid #333; width: 200px; text-align: center; padding-top: 5px; font-size: 14px; }
+
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
         th, td { border: 1px solid #dee2e6; padding: 8px; text-align: left; vertical-align: middle; }
         th { background-color: #f1f3f5; font-weight: bold; }
         .text-right { text-align: right; }
         
         .amount-words { margin-top: 15px; font-style: italic; font-weight: bold; border-top: 1px solid #eee; padding-top: 10px; }
+        .quote-terms { font-size: 11px; margin-top: 20px; color: #555; display: none; }
 
         #docView { display: none; }
 
@@ -90,7 +102,6 @@
         <p style="font-size: 12px; color: #666;">Enter PIN to access</p>
         <input type="password" id="loginPin" placeholder="PIN" maxlength="4" onkeyup="if(event.key === 'Enter') checkLogin()">
         <button class="btn-login" onclick="checkLogin()">Unlock</button>
-        <p style="margin-top:15px; font-size:11px; color:#888;">Sales (1111) | Admin (9999)</p>
     </div>
 </div>
 
@@ -238,24 +249,27 @@
         </thead>
         <tbody></tbody>
     </table>
+    
+    <div style="display:flex; gap:10px; margin-top:20px; background: #eee; padding:10px; border-radius:5px;">
+        <div class="input-box"><label>Discount</label><input type="number" id="discountInput" value="0" oninput="calculateGrandTotal()"></div>
+        <div class="input-box"><label>Advance Paid (For Receipt)</label><input type="number" id="advanceInput" value="0" style="font-weight:bold; color:green;" oninput="calculateGrandTotal()"></div>
+    </div>
 
     <br>
     <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-        <button class="btn btn-inv" onclick="generateDocument('invoice')">Generate Invoice</button>
+        <button class="btn btn-inv" onclick="generateDocument('invoice')">Invoice</button>
+        <button class="btn btn-quote" onclick="generateDocument('quotation')">Quotation</button>
+        <button class="btn btn-receipt" onclick="generateDocument('receipt')">Receipt Voucher</button>
         <button class="btn btn-po admin-only-btn" onclick="generateDocument('po')">Purchase Order</button>
-        <button class="btn btn-prod" onclick="generateDocument('production')">Production Unit</button>
+        <button class="btn btn-prod" onclick="generateDocument('production')">Production</button>
     </div>
 
     <div class="bottom-actions">
-        <button class="btn btn-save" onclick="saveCurrentOrder()">
-            💾 Save to Google Sheet & Phone
-        </button>
-
+        <button class="btn btn-save" onclick="saveCurrentOrder()">💾 Save to Google Sheet & Phone</button>
         <div class="admin-controls">
             <button class="btn btn-history" onclick="toggleSavedList()">📂 Open History</button>
             <button class="btn btn-sync" onclick="syncFromCloud()">🔄 Download Data</button>
         </div>
-
         <button class="btn btn-clear" onclick="clearData()">❌ New Order / Clear All</button>
     </div>
 </div>
@@ -287,24 +301,24 @@
         <tbody id="docBody"></tbody>
         <tfoot class="price-col">
             <tr>
-                <td id="colspanGap" class="text-right"><strong>Current Bill Total:</strong></td>
+                <td id="colspanGap" class="text-right"><strong>Total Amount:</strong></td>
                 <td id="subTotal">0.00</td>
             </tr>
             <tr id="trDiscount">
                 <td id="colspanGapDisc" class="text-right"><strong>Discount:</strong></td>
-                <td><input type="number" id="discountInput" value="0" style="width:80px; text-align:right;" oninput="calculateGrandTotal()"></td>
+                <td id="dispDiscount">0.00</td>
             </tr>
             <tr id="trPrevBal" style="background-color: #fff3cd;">
                 <td id="colspanGapPrev" class="text-right"><strong>+ Previous Balance:</strong></td>
                 <td id="displayPrevBal">0.00</td>
             </tr>
             <tr>
-                <td id="colspanGapGrand" class="text-right" style="font-size:16px;"><strong>GRAND TOTAL (Net):</strong></td>
+                <td id="colspanGapGrand" class="text-right" style="font-size:16px;"><strong>GRAND TOTAL:</strong></td>
                 <td id="grandTotal" style="font-size:16px; font-weight:bold;">0.00</td>
             </tr>
             <tr id="trAdvance">
                 <td id="colspanGapAdv" class="text-right"><strong>- Advance Paid:</strong></td>
-                <td><input type="number" id="advanceInput" value="0" style="width:80px; text-align:right;" oninput="calculateGrandTotal()"></td>
+                <td id="dispAdvance">0.00</td>
             </tr>
             <tr id="trBalanceDue">
                 <td id="colspanGapBal" class="text-right" style="color: #dc3545;"><strong>BALANCE DUE:</strong></td>
@@ -313,7 +327,40 @@
         </tfoot>
     </table>
 
+    <div id="receiptBox" class="receipt-box">
+        <div class="receipt-row">
+            <div class="receipt-label">Received from:</div>
+            <div class="receipt-value" id="rcptName"></div>
+        </div>
+        <div class="receipt-row">
+            <div class="receipt-label">The sum of:</div>
+            <div class="receipt-value" id="rcptWords"></div>
+        </div>
+        <div class="receipt-row">
+            <div class="receipt-label">Being:</div>
+            <div class="receipt-value">Advance / Payment for Curtain Works</div>
+        </div>
+        
+        <div style="display:flex; justify-content: space-between; align-items: flex-end;">
+            <div class="receipt-amount-box">QR <span id="rcptAmount">0.00</span></div>
+            <div style="font-size:12px;">
+                Mode: Cash &nbsp;☐&nbsp;&nbsp; Card &nbsp;☐&nbsp;&nbsp; Cheque &nbsp;☐
+            </div>
+        </div>
+
+        <div class="receipt-footer">
+            <div class="receipt-sig">Accountant</div>
+            <div class="receipt-sig">Receiver's Signature</div>
+        </div>
+    </div>
+
     <div id="amountWords" class="amount-words no-print-placeholder"></div>
+    <div id="quoteTerms" class="quote-terms">
+        <strong>Terms & Conditions:</strong><br>
+        1. This quotation is valid for 15 days.<br>
+        2. 50% advance payment required to confirm the order.<br>
+        3. Delivery time: 3-7 days after confirmation.
+    </div>
 
     <div class="no-print" style="margin-top: 30px; text-align: center; display: flex; gap: 10px; justify-content: center;">
         <button class="btn btn-print" onclick="window.print()">Print / Save PDF</button>
@@ -329,7 +376,7 @@
     let cart = [];
     let currentMode = 'invoice'; 
     let globalSubTotal = 0;
-    let currentUserRole = null; // 'admin' or 'sales'
+    let currentUserRole = null; 
     const curtainTypes = ["Heavy Curtain", "Sheer Curtain", "Blackout Curtain"];
 
     window.onload = function() {
@@ -339,39 +386,29 @@
     // --- LOGIN LOGIC ---
     function checkLogin() {
         let pin = document.getElementById("loginPin").value;
-        if(pin === "9999") { // ADMIN PIN
-            loginSuccess("admin");
-        } else if (pin === "1111") { // SALES PIN
-            loginSuccess("sales");
-        } else {
-            alert("Wrong PIN! Try 1111 (Sales) or 9999 (Admin)");
-            document.getElementById("loginPin").value = "";
-        }
+        if(pin === "9999") { loginSuccess("admin"); } 
+        else if (pin === "1111") { loginSuccess("sales"); } 
+        else { alert("Wrong PIN!"); document.getElementById("loginPin").value = ""; }
     }
 
     function loginSuccess(role) {
         currentUserRole = role;
         document.getElementById("loginOverlay").style.display = "none";
-        
         let badge = document.getElementById("userRoleBadge");
         badge.innerText = role.toUpperCase();
         badge.className = "role-badge " + (role === 'admin' ? "role-admin" : "role-sales");
-
-        // UI Updates based on Role
         if (role === 'admin') {
-            document.querySelector('.admin-controls').style.display = "flex"; // Show History & Sync Buttons
-            document.querySelector('.admin-only-btn').style.display = "block"; // Show PO Button
+            document.querySelector('.admin-controls').style.display = "flex"; 
+            document.querySelector('.admin-only-btn').style.display = "block"; 
         } else {
             document.querySelector('.admin-controls').style.display = "none";
             document.querySelector('.admin-only-btn').style.display = "none";
         }
     }
 
-    function logout() {
-        location.reload();
-    }
+    function logout() { location.reload(); }
 
-    // --- SAVE & SYNC (Google Sheets) ---
+    // --- SAVE & SYNC ---
     function saveCurrentOrder() {
         let name = document.getElementById("custName").value || "Unnamed";
         if (cart.length === 0) { alert("List is empty!"); return; }
@@ -379,7 +416,7 @@
         let orderData = {
             id: Date.now(), 
             date: new Date().toLocaleString(), 
-            name: name, // For local compat
+            name: name, 
             cart: cart,
             custName: document.getElementById("custName").value, 
             custPhone: document.getElementById("custPhone").value,
@@ -388,42 +425,28 @@
             advance: document.getElementById("advanceInput").value || 0, 
             prevBalance: document.getElementById("prevBalanceInput").value || 0,
             grandTotal: document.getElementById("grandTotal").innerText,
-            savedBy: currentUserRole // track who saved it
+            savedBy: currentUserRole.toUpperCase()
         };
 
-        // 1. Save Locally (Backup)
         let savedOrders = JSON.parse(localStorage.getItem("amsilksSavedOrders") || "[]");
         savedOrders.push(orderData);
         localStorage.setItem("amsilksSavedOrders", JSON.stringify(savedOrders));
 
-        // 2. Save to Google Sheet (Allowed for both)
         let saveBtn = document.querySelector(".btn-save");
         let originalText = saveBtn.innerText;
         saveBtn.innerText = "Saving to Cloud...";
         saveBtn.disabled = true;
 
         fetch(SHEET_API_URL, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "text/plain" },
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" },
             body: JSON.stringify(orderData)
         })
-        .then(() => {
-            alert("Order Saved Successfully (Google Sheet & Phone)!");
-            saveBtn.innerText = originalText;
-            saveBtn.disabled = false;
-        })
-        .catch(error => {
-            console.error(error);
-            alert("Saved Locally Only. Cloud connection failed.");
-            saveBtn.innerText = originalText;
-            saveBtn.disabled = false;
-        });
+        .then(() => { alert("Order Saved! Created By: " + currentUserRole.toUpperCase()); saveBtn.innerText = originalText; saveBtn.disabled = false; })
+        .catch(error => { console.error(error); alert("Saved Locally Only. Cloud connection failed."); saveBtn.innerText = originalText; saveBtn.disabled = false; });
     }
 
     function syncFromCloud() {
         if(currentUserRole !== 'admin') { alert("Access Denied. Admin only."); return; }
-
         let btn = document.querySelector(".btn-sync");
         let origText = btn.innerText;
         btn.innerText = "🔄 Downloading...";
@@ -435,37 +458,23 @@
                 let formattedData = data.map(row => {
                     let cartObj = (typeof row.cart === 'string') ? JSON.parse(row.cart) : row.cart;
                     return {
-                        id: row.id,
-                        date: row.date,
-                        name: row.custName,
-                        custName: row.custName,
-                        custPhone: row.custPhone,
-                        grandTotal: row.grandTotal,
-                        cart: cartObj,
+                        id: row.id, date: row.date, name: row.custName, custName: row.custName, custPhone: row.custPhone,
+                        grandTotal: row.grandTotal, savedBy: row.savedBy || "UNKNOWN", cart: cartObj,
                         discount: 0, advance: 0, prevBalance: 0 
                     };
                 });
-
                 localStorage.setItem("amsilksSavedOrders", JSON.stringify(formattedData));
-                alert("Synced " + data.length + " orders from Google Sheet!");
-                // Force open the list to show results
+                alert("Synced " + data.length + " orders!");
                 let area = document.getElementById("savedListArea");
                 area.style.display = "block";
                 showSavedOrders();
-            } else {
-                alert("Invalid data received.");
-            }
+            } else { alert("Invalid data received."); }
             btn.innerText = origText;
         })
-        .catch(error => {
-            console.error(error);
-            alert("Sync failed. Check internet connection.");
-            btn.innerText = origText;
-        });
+        .catch(error => { console.error(error); alert("Sync failed."); btn.innerText = origText; });
     }
 
     function toggleSavedList() {
-        // Just in case, though button is hidden for sales
         if(currentUserRole !== 'admin') { return; } 
         let area = document.getElementById("savedListArea");
         area.style.display = (area.style.display === "block") ? "none" : "block";
@@ -476,21 +485,19 @@
         let container = document.getElementById("savedItemsContainer");
         let savedOrders = JSON.parse(localStorage.getItem("amsilksSavedOrders") || "[]");
         container.innerHTML = "";
-        if (savedOrders.length === 0) { container.innerHTML = "<p>No saved orders found locally. Try Sync.</p>"; return; }
-        
+        if (savedOrders.length === 0) { container.innerHTML = "<p>No saved orders.</p>"; return; }
         savedOrders.reverse().forEach((order) => {
             let div = document.createElement("div"); div.className = "saved-item";
             let totalTxt = order.grandTotal ? `Total: ${order.grandTotal}` : "";
-            div.innerHTML = `<div><strong>${order.custName || order.name}</strong> <br> <small>${order.date} | ${totalTxt}</small></div>
-            <div>
-                <button class="btn-add" style="padding:5px 10px; font-size:12px;" onclick="loadOrder(${order.id})">Load</button>
-            </div>`;
+            let createdBy = order.savedBy ? `<br>👤 <b>${order.savedBy}</b>` : "";
+            div.innerHTML = `<div><strong>${order.custName || order.name}</strong> <br> <small>${order.date} | ${totalTxt} ${createdBy}</small></div>
+            <div><button class="btn-add" style="padding:5px 10px; font-size:12px;" onclick="loadOrder(${order.id})">Load</button></div>`;
             container.appendChild(div);
         });
     }
 
     function loadOrder(id) {
-        if(!confirm("Load this order? Current unsaved data will be lost.")) return;
+        if(!confirm("Load this order?")) return;
         let savedOrders = JSON.parse(localStorage.getItem("amsilksSavedOrders") || "[]");
         let order = savedOrders.find(o => o.id == id); 
         if (order) {
@@ -507,7 +514,7 @@
     }
 
     function clearData() {
-        if(confirm("Clear all data and start fresh?")) {
+        if(confirm("Clear all data?")) {
             cart = [];
             document.querySelectorAll("input").forEach(i => i.value = "");
             document.getElementById("itemQty").value = "1";
@@ -585,20 +592,20 @@
             let calculatedFab = 0;
             if (selectedFabWidth > 2.0 && requiredHeight <= selectedFabWidth) {
                 calculatedFab = w * fullnessRatio;
-                calcNote = `Wide Fab: (Wx${fullnessRatio}) ${calculatedFab.toFixed(2)}m`;
                 railroadingUsed = true;
+                calcNote = `Wide Fab: (Wx${fullnessRatio})`;
             } else {
                 let panels = Math.ceil((w * fullnessRatio) / selectedFabWidth);
                 if(panels < 1) panels = 1;
                 calculatedFab = panels * requiredHeight;
-                calcNote = `Vertical (${fullnessRatio}x): ${panels} Pcs x ${requiredHeight.toFixed(2)}m`;
+                calcNote = `Vertical (${fullnessRatio}x): ${panels} Pcs`;
             }
             fabPerItemCust = calculatedFab; fabPerItemSupp = calculatedFab;
         } else {
             let rawArea = w * h;
             fabPerItemCust = (rawArea < 2.0) ? 2.0 : rawArea;
             fabPerItemSupp = (rawArea < 1.5) ? 1.5 : rawArea;
-            calcNote = `Area: ${rawArea.toFixed(2)} (Min Inv:2/PO:1.5)`;
+            calcNote = `Area: ${rawArea.toFixed(2)}`;
             stitchRate = 0;
         }
 
@@ -633,10 +640,7 @@
                 <td>${item.type}<br><small>${fabInfo}</small></td>
                 <td>${item.w.toFixed(2)}m x ${item.h.toFixed(2)}m<br><b>Qty: ${item.itemQty}</b></td>
                 <td>${item.totalFabCust.toFixed(2)} (Inv)</td>
-                <td>
-                    <button class="btn btn-edit" onclick="editItem(${i})">Edit</button>
-                    <button class="btn btn-close" style="padding:5px 10px; font-size:12px;" onclick="deleteItem(${i})">X</button>
-                </td>
+                <td><button class="btn btn-edit" onclick="editItem(${i})">Edit</button><button class="btn btn-close" style="padding:5px 10px; font-size:12px;" onclick="deleteItem(${i})">X</button></td>
             </tr>`;
         });
     }
@@ -649,35 +653,23 @@
         document.getElementById("floorSelect").value = (["Ground Floor","Mezzanine Floor","First Floor","Second Floor","Third Floor"].includes(item.floor)) ? item.floor : "Other";
         checkManualInput('floorSelect', 'manualFloor');
         if(document.getElementById("floorSelect").value === "Other") document.getElementById("manualFloor").value = item.floor;
-
         let roomOpts = Array.from(document.getElementById("roomSelect").options).map(o => o.value);
         if(roomOpts.includes(item.room)) { document.getElementById("roomSelect").value = item.room; } 
         else { document.getElementById("roomSelect").value = "Other"; document.getElementById("manualRoom").style.display = "block"; document.getElementById("manualRoom").value = item.room; }
-
-        document.getElementById("type").value = item.type;
-        toggleFields();
-        document.getElementById("fullnessSelect").value = (item.fullnessRatio == 3) ? "3" : (item.fullnessRatio == 2) ? "2" : "custom";
-        checkCustomFullness();
+        document.getElementById("type").value = item.type; toggleFields();
+        document.getElementById("fullnessSelect").value = (item.fullnessRatio == 3) ? "3" : (item.fullnessRatio == 2) ? "2" : "custom"; checkCustomFullness();
         if(item.fullnessRatio != 3 && item.fullnessRatio != 2) document.getElementById("customFullnessInput").value = item.fullnessRatio;
-
         document.getElementById("fabricWidthSelect").value = item.selectedFabWidth;
-        document.getElementById("catalog").value = item.catalog;
-        document.getElementById("fabricNo").value = item.fabricNo;
+        document.getElementById("catalog").value = item.catalog; document.getElementById("fabricNo").value = item.fabricNo;
         document.getElementById("itemQty").value = item.itemQty;
-        document.getElementById("width").value = item.w * 100;
-        document.getElementById("height").value = item.h * 100;
-        document.getElementById("itemNote").value = item.note;
-        document.getElementById("price").value = item.price;
+        document.getElementById("width").value = item.w * 100; document.getElementById("height").value = item.h * 100;
+        document.getElementById("itemNote").value = item.note; document.getElementById("price").value = item.price;
         document.getElementById("stitchCharge").value = (item.totalStitch / item.itemQty) || 0;
         document.getElementById("fixCharge").value = (item.totalFix / item.itemQty) || 0;
-
         deleteItem(i); window.scrollTo(0,0);
     }
 
-    function deleteItem(index) {
-        cart.splice(index, 1);
-        renderDraft();
-    }
+    function deleteItem(index) { cart.splice(index, 1); renderDraft(); }
 
     function generateDocument(mode) {
         currentMode = mode;
@@ -691,81 +683,110 @@
         let nameElement = document.getElementById("docToName");
         let phoneElement = document.getElementById("docToPhone");
         let titleElement = document.getElementById("docTitle");
+        let termsDiv = document.getElementById("quoteTerms");
+        let docTable = document.getElementById("docTable");
+        let receiptBox = document.getElementById("receiptBox");
+        let amountWordsDiv = document.getElementById("amountWords");
 
-        if (mode === 'invoice') {
-            titleElement.innerText = "INVOICE";
+        // RESET VIEWS
+        docTable.style.display = "table";
+        receiptBox.style.display = "none";
+        amountWordsDiv.style.display = "none";
+        tfoot.style.display = "none";
+        termsDiv.style.display = "none";
+
+        if (mode === 'receipt') {
+            titleElement.innerText = "RECEIPT VOUCHER";
+            nameElement.innerText = document.getElementById("custName").value;
+            phoneElement.innerText = document.getElementById("custPhone").value;
+            
+            // HIDE TABLE & FOOTER
+            docTable.style.display = "none";
+            
+            // SHOW RECEIPT
+            receiptBox.style.display = "block";
+            
+            // FILL RECEIPT DATA
+            let advance = parseFloat(document.getElementById("advanceInput").value) || 0;
+            let total = parseFloat(document.getElementById("grandTotal").innerText) || 0;
+            let receiptAmt = (advance > 0) ? advance : total;
+            
+            document.getElementById("rcptName").innerText = document.getElementById("custName").value;
+            document.getElementById("rcptAmount").innerText = receiptAmt.toFixed(2);
+            document.getElementById("rcptWords").innerText = numberToWords(receiptAmt);
+            
+        } else if (mode === 'invoice' || mode === 'quotation') {
+            titleElement.innerText = (mode === 'invoice') ? "INVOICE" : "QUOTATION";
             nameElement.innerText = document.getElementById("custName").value;
             phoneElement.innerText = document.getElementById("custPhone").value;
             tfoot.style.display = "table-footer-group"; 
-            document.querySelector(".amount-words").style.display = "block";
+            amountWordsDiv.style.display = "block";
+            termsDiv.style.display = (mode === 'quotation') ? "block" : "none";
         } else {
             titleElement.innerText = (mode === 'po') ? "PURCHASE ORDER" : "PRODUCTION WORK SHEET";
             nameElement.innerText = (mode === 'po') ? document.getElementById("suppName").value : "Internal Workshop";
             phoneElement.innerText = ""; 
-            tfoot.style.display = "none"; 
-            document.querySelector(".amount-words").style.display = "none";
         }
 
-        let hasStitchOrFix = cart.some(item => item.totalStitch > 0 || item.totalFix > 0);
-        let headerRow = document.getElementById("tableHeaderRow");
-        let headers = `<th>#</th><th>Location</th><th>Description</th><th>Size (WxH)</th><th>Qty</th>`;
-        if (mode !== 'invoice') headers += `<th>Fabric Qty</th>`; 
-        if (mode === 'invoice') {
-            headers += `<th>Fab/Mat Price</th>`;
-            if (hasStitchOrFix) headers += `<th>Stitch/Fix</th>`;
-            headers += `<th>Unit Price</th><th>Total</th>`;
-        }
-        headerRow.innerHTML = headers;
-        
-        let footSpan = (mode === 'invoice') ? (hasStitchOrFix ? 8 : 7) : 6;
-        document.getElementById("colspanGap").colSpan = footSpan;
-        document.getElementById("colspanGapDisc").colSpan = footSpan;
-        document.getElementById("colspanGapPrev").colSpan = footSpan;
-        document.getElementById("colspanGapGrand").colSpan = footSpan;
-        document.getElementById("colspanGapAdv").colSpan = footSpan;
-        document.getElementById("colspanGapBal").colSpan = footSpan;
-
-        let tbody = document.getElementById("docBody");
-        tbody.innerHTML = "";
-        globalSubTotal = 0;
-
-        cart.forEach((item, i) => {
-            globalSubTotal += item.totalCost;
-            let unit = item.isCurtain ? "Mtr" : "Sqm";
-            let tName = item.towerName ? `<br>(${item.towerName})` : "";
-            let locationText = (mode === 'po') ? `<b>${item.bType}</b><br>${item.floor}<br>${item.room}` : `<b>${item.bType}${tName}</b><br>${item.floor}<br>${item.room}`;
-            let methodText = "";
-            if (item.isCurtain && mode !== 'invoice') {
-                let ratio = `1x${item.fullnessRatio}`;
-                methodText = item.railroadingUsed ? `<br><small>(Railroad / ${ratio})</small>` : `<br><small>(Vertical / ${ratio})</small>`;
+        if (mode !== 'receipt') {
+            // BUILD TABLE (SAME AS BEFORE)
+            let hasStitchOrFix = cart.some(item => item.totalStitch > 0 || item.totalFix > 0);
+            let headerRow = document.getElementById("tableHeaderRow");
+            let headers = `<th>#</th><th>Location</th><th>Description</th><th>Size (WxH)</th><th>Qty</th>`;
+            if (mode !== 'invoice' && mode !== 'quotation') headers += `<th>Fabric Qty</th>`; 
+            if (mode === 'invoice' || mode === 'quotation') {
+                headers += `<th>Fab/Mat Price</th>`;
+                if (hasStitchOrFix) headers += `<th>Stitch/Fix</th>`;
+                headers += `<th>Unit Price</th><th>Total</th>`;
             }
-            let desc = `${item.type}${methodText}<br>Cat: ${item.catalog}<br>Fab: ${item.fabricNo}`;
-            if(item.note) desc += `<br><i>[${item.note}]</i>`;
+            headerRow.innerHTML = headers;
+            
+            let footSpan = (mode === 'invoice' || mode === 'quotation') ? (hasStitchOrFix ? 8 : 7) : 6;
+            ["colspanGap", "colspanGapDisc", "colspanGapPrev", "colspanGapGrand", "colspanGapAdv", "colspanGapBal"]
+            .forEach(id => { if(document.getElementById(id)) document.getElementById(id).colSpan = footSpan; });
 
-            let row = `<tr>
-                <td>${i+1}</td><td>${locationText}</td><td>${desc}</td>
-                <td>${item.w.toFixed(2)}m x ${item.h.toFixed(2)}m</td>
-                <td style="text-align:center; font-weight:bold;">${item.itemQty}</td>`;
+            let tbody = document.getElementById("docBody");
+            tbody.innerHTML = "";
+            globalSubTotal = 0;
 
-            if (mode !== 'invoice') {
-                let displayQty = item.totalFabSupp;
-                row += `<td>${displayQty.toFixed(2)} ${unit}<br><small>(${item.calcNote})</small></td>`;
-            }
-            if (mode === 'invoice') {
-                row += `<td>${item.price.toFixed(2)}</td>`;
-                if(hasStitchOrFix) {
-                    let stFixContent = (item.totalStitch > 0 || item.totalFix > 0) ? `<small>St: ${item.totalStitch}<br>Fix: ${item.totalFix}</small>` : "";
-                    row += `<td>${stFixContent}</td>`;
+            cart.forEach((item, i) => {
+                globalSubTotal += item.totalCost;
+                let unit = item.isCurtain ? "Mtr" : "Sqm";
+                let tName = item.towerName ? `<br>(${item.towerName})` : "";
+                let locationText = (mode === 'po') ? `<b>${item.bType}</b><br>${item.floor}<br>${item.room}` : `<b>${item.bType}${tName}</b><br>${item.floor}<br>${item.room}`;
+                let methodText = "";
+                if (item.isCurtain && mode !== 'invoice' && mode !== 'quotation') {
+                    let ratio = `1x${item.fullnessRatio}`;
+                    methodText = item.railroadingUsed ? `<br><small>(Railroad / ${ratio})</small>` : `<br><small>(Vertical / ${ratio})</small>`;
                 }
-                row += `<td><b>${item.calculatedUnitPrice.toFixed(2)}</b></td>
-                    <td><strong>${item.totalCost.toFixed(2)}</strong></td>`;
-            }
-            tbody.innerHTML += row + "</tr>";
-        });
+                let desc = `${item.type}${methodText}<br>Cat: ${item.catalog}<br>Fab: ${item.fabricNo}`;
+                if(item.note) desc += `<br><i>[${item.note}]</i>`;
 
-        if (mode === 'invoice') {
-            document.getElementById("subTotal").innerText = globalSubTotal.toFixed(2);
-            calculateGrandTotal();
+                let row = `<tr>
+                    <td>${i+1}</td><td>${locationText}</td><td>${desc}</td>
+                    <td>${item.w.toFixed(2)}m x ${item.h.toFixed(2)}m</td>
+                    <td style="text-align:center; font-weight:bold;">${item.itemQty}</td>`;
+
+                if (mode !== 'invoice' && mode !== 'quotation') {
+                    let displayQty = item.totalFabSupp;
+                    row += `<td>${displayQty.toFixed(2)} ${unit}<br><small>(${item.calcNote})</small></td>`;
+                }
+                if (mode === 'invoice' || mode === 'quotation') {
+                    row += `<td>${item.price.toFixed(2)}</td>`;
+                    if(hasStitchOrFix) {
+                        let stFixContent = (item.totalStitch > 0 || item.totalFix > 0) ? `<small>St: ${item.totalStitch}<br>Fix: ${item.totalFix}</small>` : "";
+                        row += `<td>${stFixContent}</td>`;
+                    }
+                    row += `<td><b>${item.calculatedUnitPrice.toFixed(2)}</b></td>
+                        <td><strong>${item.totalCost.toFixed(2)}</strong></td>`;
+                }
+                tbody.innerHTML += row + "</tr>";
+            });
+
+            if (mode === 'invoice' || mode === 'quotation') {
+                document.getElementById("subTotal").innerText = globalSubTotal.toFixed(2);
+                calculateGrandTotal();
+            }
         }
     }
 
@@ -775,23 +796,17 @@
         let prevBal = parseFloat(document.getElementById("prevBalanceInput").value) || 0;
         
         document.getElementById("displayPrevBal").innerText = prevBal.toFixed(2);
+        if(document.getElementById("dispDiscount")) document.getElementById("dispDiscount").innerText = discount.toFixed(2);
+        if(document.getElementById("dispAdvance")) document.getElementById("dispAdvance").innerText = advance.toFixed(2);
 
         let grand = (globalSubTotal - discount) + prevBal;
         let balance = grand - advance;
-
         document.getElementById("grandTotal").innerText = grand.toFixed(2);
         document.getElementById("balanceDue").innerText = balance.toFixed(2);
         document.getElementById("amountWords").innerText = "Amount in Words: " + numberToWords(balance);
-
-        toggleRowPrint("trDiscount", discount);
-        toggleRowPrint("trPrevBal", prevBal);
-        toggleRowPrint("trAdvance", advance);
-        
-        if (discount <= 0 && advance <= 0 && prevBal <= 0) {
-            document.getElementById("trBalanceDue").classList.add("hide-if-zero");
-        } else {
-            document.getElementById("trBalanceDue").classList.remove("hide-if-zero");
-        }
+        toggleRowPrint("trDiscount", discount); toggleRowPrint("trPrevBal", prevBal); toggleRowPrint("trAdvance", advance);
+        if (discount <= 0 && advance <= 0 && prevBal <= 0) document.getElementById("trBalanceDue").classList.add("hide-if-zero");
+        else document.getElementById("trBalanceDue").classList.remove("hide-if-zero");
     }
 
     function toggleRowPrint(rowId, val) {
@@ -836,28 +851,35 @@
         let prev = document.getElementById("prevBalanceInput").value;
 
         if (currentMode === 'invoice') headerText = `*INVOICE - AMSilks* %0A*Customer:* ${name}`;
+        else if (currentMode === 'quotation') headerText = `*QUOTATION - AMSilks* %0A*Customer:* ${name}`;
+        else if (currentMode === 'receipt') headerText = `*RECEIPT VOUCHER - AMSilks* %0A*Received from:* ${name}`;
         else if (currentMode === 'po') headerText = `*PURCHASE ORDER - AMSilks* %0A*Supplier:* ${document.getElementById("suppName").value}`;
         else headerText = `*PRODUCTION ORDER - AMSilks*`;
 
         text = `${headerText} %0A----------------------------%0A`;
-
-        cart.forEach((item, i) => {
-            let tName = (currentMode === 'po' || !item.towerName) ? "" : ` (${item.towerName})`;
-            let noteTxt = item.note ? ` (Note: ${item.note})` : "";
-            let methodInfo = (item.isCurtain && currentMode !== 'invoice') ? ` (1x${item.fullnessRatio})` : "";
-            text += `*${i+1}. ${item.type}*${tName}%0A   Loc: ${item.floor}/${item.room}%0A   Size: ${item.w.toFixed(2)}x${item.h.toFixed(2)}m | Qty: ${item.itemQty}%0A`;
-            let displayFab = (currentMode === 'invoice') ? item.totalFabCust : item.totalFabSupp;
-            if (currentMode !== 'invoice') text += `   Fab: ${displayFab.toFixed(2)}${methodInfo}%0A`;
-            if (currentMode === 'invoice') text += `   Total: ${item.totalCost.toFixed(2)}%0A`;
-            text += `%0A`;
-        });
-
-        if (currentMode === 'invoice') {
-            text += `----------------------------%0A`;
-            if(parseFloat(prev) > 0) text += `Old Due: ${prev}%0A`;
-            text += `*Grand Total: ${grand}*%0A`;
-            if(parseFloat(advance) > 0) text += `*Advance: ${advance}*%0A`;
-            text += `*Balance: ${balance}*`;
+        
+        if (currentMode === 'receipt') {
+            let amt = (parseFloat(advance) > 0) ? advance : grand;
+            text += `Received: QR ${amt}%0A`;
+            text += `Being: Advance/Payment for Curtain Works%0A`;
+            text += `Ref: ${document.getElementById("docRef").innerText}`;
+        } else {
+            cart.forEach((item, i) => {
+                let tName = (currentMode === 'po' || !item.towerName) ? "" : ` (${item.towerName})`;
+                let methodInfo = (item.isCurtain && currentMode !== 'invoice' && currentMode !== 'quotation') ? ` (1x${item.fullnessRatio})` : "";
+                text += `*${i+1}. ${item.type}*${tName}%0A   Loc: ${item.floor}/${item.room}%0A   Size: ${item.w.toFixed(2)}x${item.h.toFixed(2)}m | Qty: ${item.itemQty}%0A`;
+                let displayFab = (currentMode === 'invoice' || currentMode === 'quotation') ? item.totalFabCust : item.totalFabSupp;
+                if (currentMode !== 'invoice' && currentMode !== 'quotation') text += `   Fab: ${displayFab.toFixed(2)}${methodInfo}%0A`;
+                if (currentMode === 'invoice' || currentMode === 'quotation') text += `   Total: ${item.totalCost.toFixed(2)}%0A`;
+                text += `%0A`;
+            });
+            if (currentMode === 'invoice' || currentMode === 'quotation') {
+                text += `----------------------------%0A`;
+                if(parseFloat(prev) > 0) text += `Old Due: ${prev}%0A`;
+                text += `*Grand Total: ${grand}*%0A`;
+                if(currentMode === 'invoice' && parseFloat(advance) > 0) text += `*Advance: ${advance}*%0A`;
+                if(currentMode === 'invoice') text += `*Balance: ${balance}*`;
+            }
         }
         window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
     }
