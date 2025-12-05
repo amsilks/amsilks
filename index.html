@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AMSilks Trading - Pro System</title>
+    <title>AMSilks Pro - Accounts & Trading</title>
     <meta name="theme-color" content="#0056b3">
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 20px; color: #333; }
@@ -50,7 +50,7 @@
         .btn-inv { background-color: #0056b3; } 
         .btn-quote { background-color: #ffc107; color: #333; } 
         .btn-receipt { background-color: #20c997; color: white; } 
-        .btn-payment { background-color: #e83e8c; color: white; } /* Supplier Payment Button */
+        .btn-payment { background-color: #e83e8c; color: white; } 
         .btn-stmt { background-color: #6610f2; color: white; } 
         .btn-po { background-color: #e67e22; } 
         .btn-prod { background-color: #6f42c1; } 
@@ -124,8 +124,8 @@
 <div id="poModal" class="overlay" style="display:none; z-index:10001;">
     <div class="box-content" style="text-align:left;">
         <h3 style="margin-top:0; text-align:center;">Select Items for PO</h3>
-        <label style="font-size:12px;">Supplier Name for this PO:</label>
-        <input type="text" id="poSupplierInput" placeholder="Enter Supplier Name">
+        <label style="font-size:12px;">Supplier Name (Registering):</label>
+        <input type="text" id="poSupplierInput" placeholder="Enter Supplier Name" list="savedNamesList">
         
         <div class="po-list" id="poListContainer"></div>
 
@@ -142,13 +142,12 @@
         <label>Select Type:</label>
         <select id="stmtType">
             <option value="Customer">Customer Statement</option>
-            <option value="Supplier">Supplier History</option>
+            <option value="Supplier">Supplier Statement</option>
         </select>
         
-        <label>Name (Search/Type):</label>
+        <label>Name (Search):</label>
         <input type="text" id="stmtNameInput" placeholder="Enter Name Exactly..." list="savedNamesList">
-        <datalist id="savedNamesList"></datalist>
-
+        
         <div style="display:flex; justify-content:space-between; margin-top:20px;">
             <button class="btn-cancel" onclick="document.getElementById('statementModal').style.display='none'">Close</button>
             <button class="btn-stmt" onclick="generateStatement()" style="width:48%; padding:10px; border:none; border-radius:5px; cursor:pointer;">Generate</button>
@@ -158,18 +157,20 @@
 
 <div id="paymentModal" class="overlay" style="display:none; z-index:10001;">
     <div class="box-content" style="text-align:left;">
-        <h3 style="margin-top:0; text-align:center;">Supplier Payment</h3>
+        <h3 style="margin-top:0; text-align:center;">Pay Supplier</h3>
         <label>Supplier Name:</label>
-        <input type="text" id="paySuppName" placeholder="Enter Supplier Name">
+        <input type="text" id="paySuppName" placeholder="Search Supplier..." list="savedNamesList">
         <label>Amount Paid:</label>
         <input type="number" id="payAmount" placeholder="0.00">
         
         <div style="display:flex; justify-content:space-between; margin-top:20px;">
             <button class="btn-cancel" onclick="document.getElementById('paymentModal').style.display='none'">Close</button>
-            <button class="btn-payment" onclick="generatePaymentVoucher()" style="width:48%; padding:10px; border:none; border-radius:5px; cursor:pointer;">Create & Save</button>
+            <button class="btn-payment" onclick="generatePaymentVoucher()" style="width:48%; padding:10px; border:none; border-radius:5px; cursor:pointer;">Save Payment</button>
         </div>
     </div>
 </div>
+
+<datalist id="savedNamesList"></datalist>
 
 <div class="container" id="editorSection">
     
@@ -192,7 +193,7 @@
     </div>
 
     <div class="input-group">
-        <div class="input-box"><label>Customer Name</label><input type="text" id="custName"></div>
+        <div class="input-box"><label>Customer Name</label><input type="text" id="custName" list="savedNamesList"></div>
         <div class="input-box"><label>Customer Phone</label><input type="tel" id="custPhone"></div>
         <input type="hidden" id="suppName"> 
         <div class="input-box" style="background: #fff3cd; border-radius: 5px; padding: 5px;">
@@ -321,7 +322,7 @@
     
     <div style="display:flex; gap:10px; margin-top:20px; background: #eee; padding:10px; border-radius:5px;">
         <div class="input-box"><label>Discount</label><input type="number" id="discountInput" value="0" oninput="calculateGrandTotal()"></div>
-        <div class="input-box"><label>Advance (or Receipt Amt)</label><input type="number" id="advanceInput" value="0" style="font-weight:bold; color:green;" oninput="calculateGrandTotal()"></div>
+        <div class="input-box"><label>Advance Paid (Receipt Amount)</label><input type="number" id="advanceInput" value="0" style="font-weight:bold; color:green;" oninput="calculateGrandTotal()"></div>
     </div>
 
     <br>
@@ -331,7 +332,8 @@
         <button class="btn btn-receipt" onclick="generateDocument('receipt')">Receipt Voucher</button>
         <button class="btn btn-stmt" onclick="openStatementModal()">Statement</button> 
         <button class="btn btn-po admin-only-btn" onclick="openPOModal()">Purchase Order</button>
-        <button class="btn btn-payment admin-only-btn" onclick="document.getElementById('paymentModal').style.display='flex'">Pay Supplier</button> </div>
+        <button class="btn btn-payment admin-only-btn" onclick="openPaymentModal()">Pay Supplier</button>
+    </div>
 
     <div class="bottom-actions">
         <button class="btn btn-save" onclick="saveCurrentOrder()">💾 Save to Google Sheet & Phone</button>
@@ -450,7 +452,7 @@
     let cart = []; let currentMode = 'invoice'; let globalSubTotal = 0; let currentUserRole = null; let poSupplierName = "";
     const curtainTypes = ["Heavy Curtain", "Sheer Curtain", "Blackout Curtain"];
 
-    window.onload = function() { updateRoomOptions(); updateNetworkStatus(); checkPendingSyncs(); };
+    window.onload = function() { updateRoomOptions(); updateNetworkStatus(); checkPendingSyncs(); populateDatalist(); };
 
     function checkLogin() {
         let pin = document.getElementById("loginPin").value;
@@ -466,38 +468,44 @@
 
     function logout() { location.reload(); }
 
-    // --- STATEMENT LOGIC (IMPROVED) ---
-    function openStatementModal() {
+    // --- POPULATE DATALIST FOR NAMES ---
+    function populateDatalist() {
         let savedOrders = JSON.parse(localStorage.getItem("amsilksSavedOrders") || "[]");
-        // Collect all distinct names (Customers and Suppliers)
-        let custNames = [...new Set(savedOrders.filter(o=>o.recordType==='invoice' || o.recordType==='receipt').map(o => o.custName))];
-        let suppNames = [...new Set(savedOrders.filter(o=>o.recordType==='po' || o.recordType==='payment' || o.suppName).map(o => o.suppName).filter(n=>n))];
+        // Get all unique names used in Invoice/Receipt (Customers) and PO/Payment (Suppliers)
+        let custNames = savedOrders.filter(o => o.custName).map(o => o.custName.trim());
+        let suppNames = savedOrders.filter(o => o.suppName).map(o => o.suppName.trim());
+        let allNames = [...new Set([...custNames, ...suppNames])];
         
-        let dataList = document.getElementById("savedNamesList");
-        dataList.innerHTML = "";
-        custNames.forEach(n => { let opt = document.createElement("option"); opt.value = n; dataList.appendChild(opt); });
-        suppNames.forEach(n => { let opt = document.createElement("option"); opt.value = n; dataList.appendChild(opt); });
+        let dl = document.getElementById("savedNamesList");
+        dl.innerHTML = "";
+        allNames.forEach(n => {
+            if(n) { let opt = document.createElement("option"); opt.value = n; dl.appendChild(opt); }
+        });
+    }
 
+    // --- STATEMENT LOGIC (FIXED) ---
+    function openStatementModal() {
+        populateDatalist();
         document.getElementById("statementModal").style.display = "flex";
     }
 
     function generateStatement() {
         let type = document.getElementById("stmtType").value;
-        let name = document.getElementById("stmtNameInput").value;
+        let name = document.getElementById("stmtNameInput").value.trim();
         if(!name) { alert("Please enter a name"); return; }
 
         let savedOrders = JSON.parse(localStorage.getItem("amsilksSavedOrders") || "[]");
         let filtered = [];
 
-        // Filter logic based on Type and Name
+        // Filter: Case-insensitive check
         if (type === 'Customer') {
             filtered = savedOrders.filter(o => o.custName && o.custName.toLowerCase() === name.toLowerCase());
         } else {
-            // For suppliers, check POs and Payments
+            // Suppliers: Look for POs and Payments
             filtered = savedOrders.filter(o => o.suppName && o.suppName.toLowerCase() === name.toLowerCase());
         }
 
-        if(filtered.length === 0) { alert("No records found for " + name); return; }
+        if(filtered.length === 0) { alert("No records found for " + name + ". Check spelling."); return; }
 
         document.getElementById("statementModal").style.display = "none";
         document.getElementById("editorSection").style.display = "none";
@@ -506,13 +514,13 @@
         document.getElementById("docToName").innerText = name;
         document.getElementById("docDate").innerText = new Date().toLocaleDateString();
         
-        // Hide standard footer elements
+        // Setup View
         document.getElementById("docFooter").style.display = "none"; 
         document.getElementById("amountWords").style.display = "none";
         document.getElementById("receiptBox").style.display = "none";
         document.getElementById("quoteTerms").style.display = "none";
-        
         document.getElementById("docTable").style.display = "table";
+        
         let headerRow = document.getElementById("tableHeaderRow");
         let tbody = document.getElementById("docBody");
         tbody.innerHTML = "";
@@ -520,22 +528,23 @@
         if (type === 'Customer') {
             headerRow.innerHTML = "<th>Date</th><th>Type</th><th>Bill (Dr)</th><th>Paid (Cr)</th><th>Balance</th>";
             let balance = 0;
+            // Sort by Date/ID
             filtered.sort((a, b) => a.id - b.id);
 
             filtered.forEach(o => {
                 let dr = 0, cr = 0;
-                let desc = "Order";
+                let desc = "";
 
                 if (o.recordType === 'invoice') {
                     dr = parseFloat(o.grandTotal) || 0;
-                    cr = parseFloat(o.advance) || 0; // Advance acts as payment
-                    desc = "Invoice #" + o.id.toString().slice(-4);
+                    desc = "Invoice";
+                    // Note: If Invoice has "Advance", treat it as immediate payment
+                    let adv = parseFloat(o.advance) || 0;
+                    if(adv > 0) cr = adv; 
                 } else if (o.recordType === 'receipt') {
-                    dr = 0;
-                    // For receipt, the amount is usually stored in advance field or grandTotal field in previous logic
-                    // In new logic, we will look at grandTotal as the receipt amount
-                    cr = parseFloat(o.grandTotal) || 0; 
-                    desc = "Receipt #" + o.id.toString().slice(-4);
+                    // Receipt is purely Payment (Credit)
+                    cr = parseFloat(o.grandTotal) || 0; // In updated save logic, receipt amount is in grandTotal
+                    desc = "Receipt";
                 }
 
                 if (dr > 0 || cr > 0) {
@@ -562,22 +571,17 @@
                 let desc = "";
 
                 if (o.recordType === 'po') {
-                    // For PO, we assume Fabric Price * Qty is the cost
-                    // We need to loop through cart to find items for this supplier? 
-                    // No, 'po' recordType usually means it was saved as a PO selection.
-                    // Let's approximate Bill Amount from the saved grandTotal (if calculated) or recalculate
-                    let poTotal = o.cart.reduce((sum, item) => sum + (item.totalCost || 0), 0); // Using Total Cost (Mat + Work)
-                    // Or strictly material: item.price * (item.totalFabSupp || 0)
-                    // Let's use totalCost for simplicity
-                    bill = poTotal;
-                    desc = "PO #" + o.id.toString().slice(-4);
+                    // Purchase Order is a Bill to Pay (Credit)
+                    bill = parseFloat(o.grandTotal) || 0; 
+                    desc = "Purchase (PO)";
                 } else if (o.recordType === 'payment') {
+                    // Payment Voucher (Debit)
                     paid = parseFloat(o.grandTotal) || 0;
                     desc = "Payment Voucher";
                 }
 
                 if (bill > 0 || paid > 0) {
-                    // Supplier Logic: Balance = Bill (Credit/Payable) - Paid (Debit)
+                    // Supplier: Balance = Bill - Paid
                     balance = balance + bill - paid;
                     tbody.innerHTML += `<tr>
                         <td>${o.date.split(',')[0]}</td>
@@ -594,20 +598,23 @@
     }
 
     // --- PAYMENT VOUCHER LOGIC ---
+    function openPaymentModal() {
+        populateDatalist();
+        document.getElementById("paymentModal").style.display = "flex";
+    }
+
     function generatePaymentVoucher() {
-        let supp = document.getElementById("paySuppName").value;
+        let supp = document.getElementById("paySuppName").value.trim();
         let amt = parseFloat(document.getElementById("payAmount").value);
         if(!supp || !amt) { alert("Enter details"); return; }
 
         document.getElementById("paymentModal").style.display = "none";
         
-        // Setup View
         currentMode = 'payment';
         document.getElementById("editorSection").style.display = "none";
         document.getElementById("docView").style.display = "block";
-        
         document.getElementById("docTitle").innerText = "PAYMENT VOUCHER";
-        document.getElementById("docToName").innerText = supp;
+        document.getElementById("docToName").innerText = supp; // Important for display
         document.getElementById("docTable").style.display = "none";
         document.getElementById("docFooter").style.display = "none";
         
@@ -619,43 +626,46 @@
         document.getElementById("rcptAmount").innerText = amt.toFixed(2);
         document.getElementById("rcptBeing").innerText = "Payment against supplies";
 
-        // Save logic prep
-        // We will trigger save manually or let user click save
-        poSupplierName = supp; // Hijack this var for saving name
-        document.getElementById("grandTotal").innerText = amt; // Hijack for amount
+        // IMPORTANT: Set temp variable for saving
+        poSupplierName = supp; 
+        document.getElementById("grandTotal").innerText = amt; // Hijack for saving amount
     }
 
     // --- SAVE LOGIC UPDATED ---
     function saveCurrentOrder() {
-        let name = document.getElementById("custName").value || "Unnamed";
+        let name = document.getElementById("custName").value.trim() || "Unnamed";
         let phone = document.getElementById("custPhone").value;
         let grandTotal = parseFloat(document.getElementById("grandTotal").innerText) || 0;
         let advance = parseFloat(document.getElementById("advanceInput").value) || 0;
-        let type = 'invoice'; // Default
-        let supplier = document.getElementById("suppName").value;
+        let type = 'invoice'; 
+        let supplier = "";
 
-        // DETERMINE RECORD TYPE
+        // DETERMINE RECORD TYPE & DATA
         if (currentMode === 'receipt') {
             type = 'receipt';
-            // For receipt, the amount is the advance field or grandTotal field depending on logic
-            // In generateDocument('receipt'), we set rcptAmount. Let's use that logic.
             let amt = (advance > 0) ? advance : grandTotal;
-            grandTotal = amt; // Save the receipt amount as grandTotal
-            advance = 0; // No separate advance
+            grandTotal = amt; 
+            advance = 0; 
         } else if (currentMode === 'payment') {
             type = 'payment';
-            name = "Supplier: " + poSupplierName; // Distinguish in list
-            supplier = poSupplierName;
+            supplier = poSupplierName; // From Payment Modal
+            name = ""; // Not a customer record
             grandTotal = parseFloat(document.getElementById("rcptAmount").innerText);
         } else if (currentMode === 'po') {
             type = 'po';
-            supplier = poSupplierName;
-            name = "PO: " + poSupplierName;
+            supplier = poSupplierName; // From PO Modal
+            name = "";
+        } else {
+            // Normal Invoice
+            type = 'invoice';
         }
 
         let orderData = {
-            id: Date.now(), date: new Date().toLocaleString(), name: name, cart: cart,
-            custName: (type === 'payment' || type === 'po') ? "" : document.getElementById("custName").value, 
+            id: Date.now(), 
+            date: new Date().toLocaleString(), 
+            name: (type === 'invoice' || type === 'receipt') ? name : "Supplier Ref", 
+            cart: cart,
+            custName: name, 
             custPhone: phone,
             suppName: supplier, 
             discount: document.getElementById("discountInput").value || 0,
@@ -664,10 +674,9 @@
             grandTotal: grandTotal, 
             savedBy: currentUserRole.toUpperCase(), 
             isSynced: false,
-            recordType: type // IMPORTANT FOR STATEMENT
+            recordType: type 
         };
 
-        // ... Saving to LocalStorage & Cloud (Same as before) ...
         let savedOrders = JSON.parse(localStorage.getItem("amsilksSavedOrders") || "[]");
         savedOrders.push(orderData);
         localStorage.setItem("amsilksSavedOrders", JSON.stringify(savedOrders));
@@ -682,6 +691,7 @@
 
     // --- PO SELECTION LOGIC ---
     function openPOModal() {
+        populateDatalist();
         if (cart.length === 0) { alert("Cart is empty!"); return; }
         let modal = document.getElementById("poModal");
         let listContainer = document.getElementById("poListContainer");
@@ -697,20 +707,20 @@
     }
     function closePOModal() { document.getElementById("poModal").style.display = "none"; }
     function generatePOFromSelection() {
-        let suppName = document.getElementById("poSupplierInput").value;
+        let suppName = document.getElementById("poSupplierInput").value.trim();
         if (!suppName) { alert("Please enter Supplier Name!"); return; }
         let selectedIndices = []; document.querySelectorAll("#poListContainer input[type='checkbox']").forEach(chk => { if (chk.checked) selectedIndices.push(parseInt(chk.value)); });
         if (selectedIndices.length === 0) { alert("No items selected!"); return; }
         let printCart = selectedIndices.map(i => cart[i]); poSupplierName = suppName; closePOModal(); generateDocument('po', printCart);
     }
 
-    // --- STANDARD FUNCTIONS (Reduced for brevity, same logic) ---
+    // --- STANDARD FUNCTIONS ---
     function markOrderAsSynced(id) { let savedOrders = JSON.parse(localStorage.getItem("amsilksSavedOrders") || "[]"); let idx = savedOrders.findIndex(o => o.id === id); if(idx !== -1) { savedOrders[idx].isSynced = true; localStorage.setItem("amsilksSavedOrders", JSON.stringify(savedOrders)); checkPendingSyncs(); } }
     function checkPendingSyncs() { let savedOrders = JSON.parse(localStorage.getItem("amsilksSavedOrders") || "[]"); let pending = savedOrders.filter(o => !o.isSynced); let btn = document.getElementById("pendingSyncBtn"); if(pending.length > 0) { btn.style.display = "block"; btn.innerText = `⚠️ ${pending.length} Orders Pending Sync`; } else { btn.style.display = "none"; } }
     function syncPendingOrders() { if (!navigator.onLine) { alert("Offline!"); return; } let savedOrders = JSON.parse(localStorage.getItem("amsilksSavedOrders") || "[]"); let pending = savedOrders.filter(o => !o.isSynced); if(pending.length === 0) { alert("No pending items."); return; } alert(`Syncing ${pending.length}...`); pending.forEach(order => { fetch(SHEET_API_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(order) }).then(() => markOrderAsSynced(order.id)); }); setTimeout(() => { checkPendingSyncs(); alert("Sync Done"); }, 3000); }
     function syncFromCloud() { if(currentUserRole !== 'admin') { alert("Admin only."); return; } let btn = document.querySelector(".btn-sync"); let ot = btn.innerText; btn.innerText = "Downloading..."; fetch(SHEET_API_URL).then(r => r.json()).then(data => { if (Array.isArray(data)) { let localOrders = JSON.parse(localStorage.getItem("amsilksSavedOrders") || "[]"); let unsynced = localOrders.filter(o => !o.isSynced); let cloud = data.map(row => ({ id: row.id, date: row.date, name: row.custName, custName: row.custName, custPhone: row.custPhone, grandTotal: row.grandTotal, advance: row.advance, recordType: row.recordType, suppName: row.suppName, savedBy: row.savedBy || "UNKNOWN", cart: (typeof row.cart === 'string') ? JSON.parse(row.cart) : row.cart, isSynced: true })); let combined = [...unsynced, ...cloud]; const unique = Array.from(new Map(combined.map(item => [item.id, item])).values()); localStorage.setItem("amsilksSavedOrders", JSON.stringify(unique)); alert("Synced!"); showSavedOrders(); } btn.innerText = ot; }).catch(e => { alert("Fail"); btn.innerText = ot; }); }
     function toggleSavedList() { let area = document.getElementById("savedListArea"); area.style.display = (area.style.display === "block") ? "none" : "block"; if(area.style.display === "block") showSavedOrders(); }
-    function showSavedOrders() { let container = document.getElementById("savedItemsContainer"); let savedOrders = JSON.parse(localStorage.getItem("amsilksSavedOrders") || "[]"); checkPendingSyncs(); container.innerHTML = ""; if (savedOrders.length === 0) { container.innerHTML = "<p>No orders.</p>"; return; } savedOrders.reverse().forEach((order) => { let div = document.createElement("div"); div.className = "saved-item"; let type = order.recordType ? `(${order.recordType.toUpperCase()})` : ""; div.innerHTML = `<div><strong>${order.custName || order.name}</strong> ${type}<br> <small>${order.date} | Total: ${order.grandTotal}</small></div><div><button class="btn-add" style="padding:5px 10px; font-size:12px;" onclick="loadOrder(${order.id})">Load</button></div>`; container.appendChild(div); }); }
+    function showSavedOrders() { let container = document.getElementById("savedItemsContainer"); let savedOrders = JSON.parse(localStorage.getItem("amsilksSavedOrders") || "[]"); checkPendingSyncs(); container.innerHTML = ""; if (savedOrders.length === 0) { container.innerHTML = "<p>No orders.</p>"; return; } savedOrders.reverse().forEach((order) => { let div = document.createElement("div"); div.className = "saved-item"; let type = order.recordType ? `(${order.recordType.toUpperCase()})` : ""; div.innerHTML = `<div><strong>${order.custName || order.suppName || "Ref"}</strong> ${type}<br> <small>${order.date} | Total: ${order.grandTotal}</small></div><div><button class="btn-add" style="padding:5px 10px; font-size:12px;" onclick="loadOrder(${order.id})">Load</button></div>`; container.appendChild(div); }); }
     function loadOrder(id) { if(!confirm("Load?")) return; let savedOrders = JSON.parse(localStorage.getItem("amsilksSavedOrders") || "[]"); let order = savedOrders.find(o => o.id == id); if (order) { cart = order.cart; document.getElementById("custName").value = order.custName; document.getElementById("custPhone").value = order.custPhone || ""; document.getElementById("discountInput").value = order.discount || 0; document.getElementById("advanceInput").value = order.advance || 0; renderDraft(); document.getElementById("savedListArea").style.display = "none"; } }
     function clearData() { if(confirm("Clear?")) { cart = []; document.querySelectorAll("input").forEach(i => i.value = ""); document.getElementById("itemQty").value = "1"; document.getElementById("stitchCharge").value = "0"; document.getElementById("fixCharge").value = "0"; document.getElementById("fullnessSelect").value = "3"; document.getElementById("fabricWidthSelect").value = "1.4"; document.getElementById("discountInput").value = "0"; document.getElementById("advanceInput").value = "0"; checkCustomFullness(); renderDraft(); } }
     function updateRoomOptions() { let bType = document.getElementById("buildingType").value; let roomSel = document.getElementById("roomSelect"); let manualInput = document.getElementById("manualRoom"); let towerInput = document.getElementById("towerNameInput"); roomSel.innerHTML = ""; towerInput.style.display = (bType === "Tower") ? "block" : "none"; manualInput.style.display = "none"; let options = (bType === "House") ? ["Living Room", "Master Bedroom", "Bedroom 1", "Bedroom 2", "Guest Room", "Majlis", "Kitchen", "Other"] : (bType === "Tower") ? ["Room A", "Room B", "Room C", "Room D", "Living Area", "Kitchen", "Other"] : ["Other"]; options.forEach(opt => { let el = document.createElement("option"); el.value = opt; el.innerText = opt; roomSel.appendChild(el); }); checkManualInput('roomSelect', 'manualRoom'); }
@@ -721,53 +731,11 @@
     function renderDraft() { let tbody = document.querySelector("#draftTable tbody"); tbody.innerHTML = ""; cart.forEach((item, i) => { let loc = `${item.bType} ${item.towerName ? '('+item.towerName+')' : ''}<br>${item.floor} - ${item.room}`; let fabInfo = `Cat: ${item.catalog}<br>Fab: ${item.fabricNo}`; tbody.innerHTML += `<tr><td>${loc}</td><td>${item.type}<br><small>${fabInfo}</small></td><td>${item.w.toFixed(2)}m x ${item.h.toFixed(2)}m<br><b>Qty: ${item.itemQty}</b></td><td>${item.totalFabCust.toFixed(2)} (Inv)</td><td><button class="btn btn-edit" onclick="editItem(${i})">Edit</button><button class="btn btn-close" style="padding:5px 10px; font-size:12px;" onclick="deleteItem(${i})">X</button></td></tr>`; }); }
     function editItem(i) { let item = cart[i]; document.getElementById("buildingType").value = item.bType; updateRoomOptions(); document.getElementById("towerNameInput").value = item.towerName || ""; document.getElementById("floorSelect").value = (["Ground Floor","Mezzanine Floor","First Floor","Second Floor","Third Floor"].includes(item.floor)) ? item.floor : "Other"; checkManualInput('floorSelect', 'manualFloor'); if(document.getElementById("floorSelect").value === "Other") document.getElementById("manualFloor").value = item.floor; let roomOpts = Array.from(document.getElementById("roomSelect").options).map(o => o.value); if(roomOpts.includes(item.room)) { document.getElementById("roomSelect").value = item.room; } else { document.getElementById("roomSelect").value = "Other"; document.getElementById("manualRoom").style.display = "block"; document.getElementById("manualRoom").value = item.room; } document.getElementById("type").value = item.type; toggleFields(); document.getElementById("fullnessSelect").value = (item.fullnessRatio == 3) ? "3" : (item.fullnessRatio == 2) ? "2" : "custom"; checkCustomFullness(); if(item.fullnessRatio != 3 && item.fullnessRatio != 2) document.getElementById("customFullnessInput").value = item.fullnessRatio; document.getElementById("fabricWidthSelect").value = item.selectedFabWidth; document.getElementById("catalog").value = item.catalog; document.getElementById("fabricNo").value = item.fabricNo; document.getElementById("itemQty").value = item.itemQty; document.getElementById("width").value = item.w * 100; document.getElementById("height").value = item.h * 100; document.getElementById("itemNote").value = item.note; document.getElementById("price").value = item.price; document.getElementById("stitchCharge").value = (item.totalStitch / item.itemQty) || 0; document.getElementById("fixCharge").value = (item.totalFix / item.itemQty) || 0; deleteItem(i); window.scrollTo(0,0); }
     function deleteItem(index) { cart.splice(index, 1); renderDraft(); }
-    function generateDocument(mode, customCart) {
-        currentMode = mode; let itemsToPrint = customCart || cart;
-        document.getElementById("editorSection").style.display = "none"; document.getElementById("docView").style.display = "block";
-        document.getElementById("amountWords").innerText = ""; document.getElementById("docDate").innerText = new Date().toLocaleDateString(); document.getElementById("docRef").innerText = "AMS-" + Math.floor(Math.random() * 1000);
-        let tfoot = document.querySelector("tfoot"); let nameElement = document.getElementById("docToName"); let phoneElement = document.getElementById("docToPhone"); let titleElement = document.getElementById("docTitle"); let termsDiv = document.getElementById("quoteTerms"); let docTable = document.getElementById("docTable"); let receiptBox = document.getElementById("receiptBox"); let amountWordsDiv = document.getElementById("amountWords");
-        docTable.style.display = "table"; receiptBox.style.display = "none"; amountWordsDiv.style.display = "none"; tfoot.style.display = "none"; termsDiv.style.display = "none"; document.getElementById("docFooter").style.display = "table-footer-group"; 
-
-        if (mode === 'receipt') {
-            titleElement.innerText = "RECEIPT VOUCHER"; nameElement.innerText = document.getElementById("custName").value; phoneElement.innerText = document.getElementById("custPhone").value;
-            docTable.style.display = "none"; receiptBox.style.display = "block"; document.getElementById("docFooter").style.display = "none";
-            let advance = parseFloat(document.getElementById("advanceInput").value) || 0; let total = parseFloat(document.getElementById("grandTotal").innerText) || 0;
-            let receiptAmt = (advance > 0) ? advance : total;
-            document.getElementById("rcptName").innerText = document.getElementById("custName").value; document.getElementById("rcptLabelFrom").innerText = "Received from:"; document.getElementById("rcptAmount").innerText = receiptAmt.toFixed(2); document.getElementById("rcptWords").innerText = numberToWords(receiptAmt);
-        } else if (mode === 'invoice' || mode === 'quotation') {
-            titleElement.innerText = (mode === 'invoice') ? "INVOICE" : "QUOTATION"; nameElement.innerText = document.getElementById("custName").value; phoneElement.innerText = document.getElementById("custPhone").value;
-            tfoot.style.display = "table-footer-group"; amountWordsDiv.style.display = "block"; termsDiv.style.display = (mode === 'quotation') ? "block" : "none";
-        } else { 
-            titleElement.innerText = (mode === 'po') ? "PURCHASE ORDER" : "PRODUCTION WORK SHEET"; 
-            nameElement.innerText = (mode === 'po') ? poSupplierName : "Internal Workshop"; phoneElement.innerText = ""; document.getElementById("docFooter").style.display = "none";
-        }
-
-        if (mode !== 'receipt') {
-            let hasStitchOrFix = itemsToPrint.some(item => item.totalStitch > 0 || item.totalFix > 0); let headerRow = document.getElementById("tableHeaderRow");
-            let headers = `<th>#</th><th>Location</th><th>Description</th><th>Size (WxH)</th><th>Qty</th>`; if (mode !== 'invoice' && mode !== 'quotation') headers += `<th>Fabric Qty</th>`; 
-            if (mode === 'invoice' || mode === 'quotation') { headers += `<th>Fab/Mat Price</th>`; if (hasStitchOrFix) headers += `<th>Stitch/Fix</th>`; headers += `<th>Unit Price</th><th>Total</th>`; }
-            headerRow.innerHTML = headers;
-            let footSpan = (mode === 'invoice' || mode === 'quotation') ? (hasStitchOrFix ? 8 : 7) : 6;
-            ["colspanGap", "colspanGapDisc", "colspanGapPrev", "colspanGapGrand", "colspanGapAdv", "colspanGapBal"].forEach(id => { if(document.getElementById(id)) document.getElementById(id).colSpan = footSpan; });
-            let tbody = document.getElementById("docBody"); tbody.innerHTML = ""; globalSubTotal = 0;
-            itemsToPrint.forEach((item, i) => {
-                globalSubTotal += item.totalCost; let unit = item.isCurtain ? "Mtr" : "Sqm"; let tName = item.towerName ? `<br>(${item.towerName})` : "";
-                let locationText = (mode === 'po') ? `<b>${item.bType}</b><br>${item.floor}<br>${item.room}` : `<b>${item.bType}${tName}</b><br>${item.floor}<br>${item.room}`;
-                let methodText = ""; if (item.isCurtain && mode !== 'invoice' && mode !== 'quotation') { let ratio = `1x${item.fullnessRatio}`; methodText = item.railroadingUsed ? `<br><small>(Railroad / ${ratio})</small>` : `<br><small>(Vertical / ${ratio})</small>`; }
-                let desc = `${item.type}${methodText}<br>Cat: ${item.catalog}<br>Fab: ${item.fabricNo}`; if(item.note) desc += `<br><i>[${item.note}]</i>`;
-                let row = `<tr><td>${i+1}</td><td>${locationText}</td><td>${desc}</td><td>${item.w.toFixed(2)}m x ${item.h.toFixed(2)}m</td><td style="text-align:center; font-weight:bold;">${item.itemQty}</td>`;
-                if (mode !== 'invoice' && mode !== 'quotation') { let displayQty = item.totalFabSupp; row += `<td>${displayQty.toFixed(2)} ${unit}<br><small>(${item.calcNote})</small></td>`; }
-                if (mode === 'invoice' || mode === 'quotation') { row += `<td>${item.price.toFixed(2)}</td>`; if(hasStitchOrFix) { let stFixContent = (item.totalStitch > 0 || item.totalFix > 0) ? `<small>St: ${item.totalStitch}<br>Fix: ${item.totalFix}</small>` : ""; row += `<td>${stFixContent}</td>`; } row += `<td><b>${item.calculatedUnitPrice.toFixed(2)}</b></td><td><strong>${item.totalCost.toFixed(2)}</strong></td>`; }
-                tbody.innerHTML += row + "</tr>";
-            });
-            if (mode === 'invoice' || mode === 'quotation') { document.getElementById("subTotal").innerText = globalSubTotal.toFixed(2); calculateGrandTotal(); }
-        }
-    }
     function calculateGrandTotal() { let discount = parseFloat(document.getElementById("discountInput").value) || 0; let advance = parseFloat(document.getElementById("advanceInput").value) || 0; let prevBal = parseFloat(document.getElementById("prevBalanceInput").value) || 0; document.getElementById("displayPrevBal").innerText = prevBal.toFixed(2); if(document.getElementById("dispDiscount")) document.getElementById("dispDiscount").innerText = discount.toFixed(2); if(document.getElementById("dispAdvance")) document.getElementById("dispAdvance").innerText = advance.toFixed(2); let grand = (globalSubTotal - discount) + prevBal; let balance = grand - advance; document.getElementById("grandTotal").innerText = grand.toFixed(2); document.getElementById("balanceDue").innerText = balance.toFixed(2); document.getElementById("amountWords").innerText = "Amount in Words: " + numberToWords(balance); toggleRowPrint("trDiscount", discount); toggleRowPrint("trPrevBal", prevBal); toggleRowPrint("trAdvance", advance); if (discount <= 0 && advance <= 0 && prevBal <= 0) document.getElementById("trBalanceDue").classList.add("hide-if-zero"); else document.getElementById("trBalanceDue").classList.remove("hide-if-zero"); }
     function toggleRowPrint(rowId, val) { if(val <= 0) document.getElementById(rowId).classList.add("hide-if-zero"); else document.getElementById(rowId).classList.remove("hide-if-zero"); }
     function closeDoc() { document.getElementById("editorSection").style.display = "block"; document.getElementById("docView").style.display = "none"; }
     function numberToWords(n) { if (n < 0) return "Negative"; if (n === 0) return "Zero Only"; const a = ['','One ','Two ','Three ','Four ','Five ','Six ','Seven ','Eight ','Nine ','Ten ','Eleven ','Twelve ','Thirteen ','Fourteen ','Fifteen ','Sixteen ','Seventeen ','Eighteen ','Nineteen ']; const b = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety']; const num = parseFloat(n).toFixed(2); let [intP, decP] = num.split('.'); intP = parseInt(intP); decP = parseInt(decP); function cvt(num) { if ((num = num.toString()).length > 9) return 'overflow'; n = ('000000000' + num).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/); if (!n) return; var str = ''; str += (n[1] != 0) ? (a[Number(n[1])] || b[n[1][0]] + ' ' + a[n[1][1]]) + 'Crore ' : ''; str += (n[2] != 0) ? (a[Number(n[2])] || b[n[2][0]] + ' ' + a[n[2][1]]) + 'Lakh ' : ''; str += (n[3] != 0) ? (a[Number(n[3])] || b[n[3][0]] + ' ' + a[n[3][1]]) + 'Thousand ' : ''; str += (n[4] != 0) ? (a[Number(n[4])] || b[n[4][0]] + ' ' + a[n[4][1]]) + 'Hundred ' : ''; str += (n[5] != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n[5])] || b[n[5][0]] + ' ' + a[n[5][1]]) : ''; return str; } let out = cvt(intP); if(!out) out = "Zero "; out += "Riyals Only"; if(decP > 0) out += " and " + cvt(decP) + " Dirhams"; return out; }
-    function sendWhatsapp() { let phone = document.getElementById("custPhone").value; let name = document.getElementById("custName").value; let headerText = "", text = ""; let grand = document.getElementById("grandTotal").innerText; let balance = document.getElementById("balanceDue").innerText; let advance = document.getElementById("advanceInput").value; let prev = document.getElementById("prevBalanceInput").value; if (currentMode === 'invoice') headerText = `*INVOICE - AMSilks* %0A*Customer:* ${name}`; else if (currentMode === 'quotation') headerText = `*QUOTATION - AMSilks* %0A*Customer:* ${name}`; else if (currentMode === 'receipt') headerText = `*RECEIPT VOUCHER - AMSilks* %0A*Received from:* ${name}`; else if (currentMode === 'statement') headerText = `*STATEMENT - AMSilks* %0A*Account:* ${document.getElementById("docToName").innerText}`; else if (currentMode === 'po') headerText = `*PURCHASE ORDER - AMSilks* %0A*Supplier:* ${poSupplierName}`; else headerText = `*PRODUCTION ORDER - AMSilks*`; text = `${headerText} %0A----------------------------%0A`; if (currentMode === 'receipt') { let amt = (parseFloat(advance) > 0) ? advance : grand; text += `Received: QR ${amt}%0A`; text += `Being: Advance/Payment for Curtain Works%0A`; text += `Ref: ${document.getElementById("docRef").innerText}`; } else if(currentMode === 'statement') { text += `See attached PDF for detailed statement.`; } else if(currentMode === 'payment') { text += `PAID TO SUPPLIER: ${poSupplierName}%0AAmount: ${grand}%0A`; } else { cart.forEach((item, i) => { let tName = (currentMode === 'po' || !item.towerName) ? "" : ` (${item.towerName})`; let methodInfo = (item.isCurtain && currentMode !== 'invoice' && currentMode !== 'quotation') ? ` (1x${item.fullnessRatio})` : ""; text += `*${i+1}. ${item.type}*${tName}%0A   Loc: ${item.floor}/${item.room}%0A   Size: ${item.w.toFixed(2)}x${item.h.toFixed(2)}m | Qty: ${item.itemQty}%0A`; let displayFab = (currentMode === 'invoice' || currentMode === 'quotation') ? item.totalFabCust : item.totalFabSupp; if (currentMode !== 'invoice' && currentMode !== 'quotation') text += `   Fab: ${displayFab.toFixed(2)}${methodInfo}%0A`; if (currentMode === 'invoice' || currentMode === 'quotation') text += `   Total: ${item.totalCost.toFixed(2)}%0A`; text += `%0A`; }); if (currentMode === 'invoice' || currentMode === 'quotation') { text += `----------------------------%0A`; if(parseFloat(prev) > 0) text += `Old Due: ${prev}%0A`; text += `*Grand Total: ${grand}*%0A`; if(currentMode === 'invoice' && parseFloat(advance) > 0) text += `*Advance: ${advance}*%0A`; if(currentMode === 'invoice') text += `*Balance: ${balance}*`; } } window.open(`https://wa.me/${phone}?text=${text}`, '_blank'); }
+    function sendWhatsapp() { let phone = document.getElementById("custPhone").value; let name = document.getElementById("custName").value; let headerText = "", text = ""; let grand = document.getElementById("grandTotal").innerText; let balance = document.getElementById("balanceDue").innerText; let advance = document.getElementById("advanceInput").value; let prev = document.getElementById("prevBalanceInput").value; if (currentMode === 'invoice') headerText = `*INVOICE - AMSilks* %0A*Customer:* ${name}`; else if (currentMode === 'quotation') headerText = `*QUOTATION - AMSilks* %0A*Customer:* ${name}`; else if (currentMode === 'receipt') headerText = `*RECEIPT VOUCHER - AMSilks* %0A*Received from:* ${name}`; else if (currentMode === 'statement') headerText = `*STATEMENT - AMSilks* %0A*Account:* ${document.getElementById("docToName").innerText}`; else if (currentMode === 'po') headerText = `*PURCHASE ORDER - AMSilks* %0A*Supplier:* ${poSupplierName}`; else if (currentMode === 'payment') headerText = `*PAYMENT VOUCHER - AMSilks* %0A*Paid To:* ${poSupplierName}`; else headerText = `*PRODUCTION ORDER - AMSilks*`; text = `${headerText} %0A----------------------------%0A`; if (currentMode === 'receipt') { let amt = (parseFloat(advance) > 0) ? advance : grand; text += `Received: QR ${amt}%0A`; text += `Being: Advance/Payment for Curtain Works%0A`; text += `Ref: ${document.getElementById("docRef").innerText}`; } else if(currentMode === 'statement') { text += `See attached PDF for detailed statement.`; } else if(currentMode === 'payment') { text += `PAID TO SUPPLIER: ${poSupplierName}%0AAmount: ${grand}%0ARef: ${document.getElementById("docRef").innerText}`; } else { cart.forEach((item, i) => { let tName = (currentMode === 'po' || !item.towerName) ? "" : ` (${item.towerName})`; let methodInfo = (item.isCurtain && currentMode !== 'invoice' && currentMode !== 'quotation') ? ` (1x${item.fullnessRatio})` : ""; text += `*${i+1}. ${item.type}*${tName}%0A   Loc: ${item.floor}/${item.room}%0A   Size: ${item.w.toFixed(2)}x${item.h.toFixed(2)}m | Qty: ${item.itemQty}%0A`; let displayFab = (currentMode === 'invoice' || currentMode === 'quotation') ? item.totalFabCust : item.totalFabSupp; if (currentMode !== 'invoice' && currentMode !== 'quotation') text += `   Fab: ${displayFab.toFixed(2)}${methodInfo}%0A`; if (currentMode === 'invoice' || currentMode === 'quotation') text += `   Total: ${item.totalCost.toFixed(2)}%0A`; text += `%0A`; }); if (currentMode === 'invoice' || currentMode === 'quotation') { text += `----------------------------%0A`; if(parseFloat(prev) > 0) text += `Old Due: ${prev}%0A`; text += `*Grand Total: ${grand}*%0A`; if(currentMode === 'invoice' && parseFloat(advance) > 0) text += `*Advance: ${advance}*%0A`; if(currentMode === 'invoice') text += `*Balance: ${balance}*`; } } window.open(`https://wa.me/${phone}?text=${text}`, '_blank'); }
 </script>
 
 </body>
