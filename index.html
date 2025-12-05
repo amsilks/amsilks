@@ -60,6 +60,9 @@
         .btn-print { background-color: #6c757d; }
         .btn-close { background-color: #dc3545; }
         
+        /* Save Button in Preview */
+        .btn-save-doc { background-color: #17a2b8; font-weight: bold; padding: 12px 20px; }
+
         .bottom-actions { margin-top: 40px; padding-top: 20px; border-top: 2px solid #eee; }
         .btn-save { background-color: #17a2b8; padding: 15px; font-size: 18px; width: 100%; margin-bottom: 10px; }
         .btn-history { background-color: #343a40; padding: 12px; flex: 1; }
@@ -124,7 +127,7 @@
 <div id="poModal" class="overlay" style="display:none; z-index:10001;">
     <div class="box-content" style="text-align:left;">
         <h3 style="margin-top:0; text-align:center;">Select Items for PO</h3>
-        <label style="font-size:12px;">Supplier Name (Registering):</label>
+        <label style="font-size:12px;">Supplier Name:</label>
         <input type="text" id="poSupplierInput" placeholder="Enter Supplier Name" list="savedNamesList">
         
         <div class="po-list" id="poListContainer"></div>
@@ -309,9 +312,10 @@
     <div id="quoteTerms" class="quote-terms"><strong>Terms:</strong> 1. Quotation valid for 15 days. 2. 50% advance required.</div>
 
     <div class="no-print" style="margin-top: 30px; text-align: center; display: flex; gap: 10px; justify-content: center;">
-        <button class="btn btn-print" onclick="window.print()">Print / Save PDF</button>
+        <button class="btn btn-save-doc" onclick="saveCurrentOrder()">💾 Save Record</button>
+        <button class="btn btn-print" onclick="window.print()">Print / PDF</button>
         <button class="btn btn-wa" onclick="sendWhatsapp()">WhatsApp</button>
-        <button class="btn btn-close" onclick="closeDoc()">Back to Edit</button>
+        <button class="btn btn-close" onclick="closeDoc()">Back / Close</button>
     </div>
 </div>
 
@@ -397,7 +401,7 @@
         tbody.innerHTML = "";
 
         if (type === 'Customer') {
-            headerRow.innerHTML = "<th>Date</th><th>Type</th><th>Bill Amount (Dr)</th><th>Received (Cr)</th><th>Balance</th>";
+            headerRow.innerHTML = "<th>Date</th><th>Type</th><th>Bill (Dr)</th><th>Received (Cr)</th><th>Balance</th>";
             let balance = 0;
             filtered.sort((a, b) => a.id - b.id);
 
@@ -408,16 +412,8 @@
                 if (o.recordType === 'invoice') {
                     dr = parseFloat(o.grandTotal) || 0;
                     desc = "Invoice";
-                    // Note: If invoice had advance, show it as Credit? 
-                    // Better: Invoice amount is Debit. Advance is Credit.
                     let adv = parseFloat(o.advance) || 0;
-                    if (adv > 0) {
-                        // Special case: Split into two lines for better clarity OR handle in calculation
-                        // Line 1: Invoice (Dr)
-                        // Line 2: Advance (Cr)
-                        // Let's keep it simple: Balance = Balance + Dr - Cr (Advance)
-                        cr = adv; 
-                    }
+                    if (adv > 0) cr = adv; 
                 } else if (o.recordType === 'receipt') {
                     cr = parseFloat(o.grandTotal) || 0; 
                     desc = "Receipt";
@@ -455,7 +451,7 @@
                     desc = "Payment";
                 }
 
-                // Balance Logic for Supplier: Credit (Bill) increases balance (we owe), Debit (Paid) decreases it.
+                // Balance Logic: Credit (Bill) increases debt, Debit (Paid) decreases it
                 balance = balance + bill - paid;
 
                 if (bill > 0 || paid > 0) {
@@ -526,29 +522,35 @@
 
     // --- SAVE LOGIC ---
     function saveCurrentOrder() {
-        let name = document.getElementById("custName").value.trim() || "Unnamed";
+        // IMPORTANT: Ensure correct name source
+        let name = document.getElementById("custName").value.trim();
         let phone = document.getElementById("custPhone").value;
         let grandTotal = parseFloat(document.getElementById("grandTotal").innerText) || 0;
         let advance = parseFloat(document.getElementById("advanceInput").value) || 0;
         let type = 'invoice'; 
         let supplier = "";
 
+        // DETERMINE RECORD TYPE & DATA
         if (currentMode === 'receipt') {
             type = 'receipt';
             let amt = parseFloat(document.getElementById("rcptAmount").innerText) || 0;
             grandTotal = amt; // Force Receipt Amount as Total
             advance = 0; 
+            // Name is already set from custName
         } else if (currentMode === 'payment') {
             type = 'payment';
             supplier = poSupplierName; 
-            name = ""; 
+            name = ""; // No customer
             grandTotal = parseFloat(document.getElementById("rcptAmount").innerText) || 0;
         } else if (currentMode === 'po') {
             type = 'po';
             supplier = poSupplierName; 
             name = "";
-            // For PO, calculate approximate value for statement logic
-            // Use the displayed Total in future, for now using grandTotal calculated in view
+            // Estimate PO value for statement
+            grandTotal = cart.reduce((sum, i) => sum + (i.totalCost || 0), 0);
+        } else if (currentMode === 'invoice') {
+            type = 'invoice';
+            if(!name) name = "Unnamed";
         }
 
         let orderData = {
@@ -573,10 +575,30 @@
         localStorage.setItem("amsilksSavedOrders", JSON.stringify(savedOrders));
 
         if (navigator.onLine) {
-            let saveBtn = document.querySelector(".btn-save"); let originalText = saveBtn.innerText; saveBtn.innerText = "Syncing..."; saveBtn.disabled = true;
-            fetch(SHEET_API_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(orderData) })
-            .then(() => { alert("Saved & Synced!"); markOrderAsSynced(orderData.id); saveBtn.innerText = originalText; saveBtn.disabled = false; })
-            .catch(error => { alert("Saved Locally."); saveBtn.innerText = originalText; saveBtn.disabled = false; checkPendingSyncs(); });
+            let saveBtn = document.querySelector(".btn-save"); 
+            // Only update main save button if visible, else notify
+            if(saveBtn) { 
+                let originalText = saveBtn.innerText; 
+                saveBtn.innerText = "Syncing..."; 
+                saveBtn.disabled = true;
+                
+                fetch(SHEET_API_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(orderData) })
+                .then(() => { 
+                    alert("Saved & Synced!"); 
+                    markOrderAsSynced(orderData.id); 
+                    saveBtn.innerText = originalText; saveBtn.disabled = false; 
+                })
+                .catch(error => { 
+                    alert("Saved Locally."); 
+                    saveBtn.innerText = originalText; saveBtn.disabled = false; 
+                    checkPendingSyncs(); 
+                });
+            } else {
+               // From Preview screen
+               fetch(SHEET_API_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(orderData) })
+               .then(() => { alert("Saved & Synced!"); markOrderAsSynced(orderData.id); })
+               .catch(() => { alert("Saved Locally."); checkPendingSyncs(); }); 
+            }
         } else { alert("Offline: Saved."); checkPendingSyncs(); }
     }
 
@@ -597,48 +619,6 @@
     function renderDraft() { let tbody = document.querySelector("#draftTable tbody"); tbody.innerHTML = ""; cart.forEach((item, i) => { let loc = `${item.bType} ${item.towerName ? '('+item.towerName+')' : ''}<br>${item.floor} - ${item.room}`; let fabInfo = `Cat: ${item.catalog}<br>Fab: ${item.fabricNo}`; tbody.innerHTML += `<tr><td>${loc}</td><td>${item.type}<br><small>${fabInfo}</small></td><td>${item.w.toFixed(2)}m x ${item.h.toFixed(2)}m<br><b>Qty: ${item.itemQty}</b></td><td>${item.totalFabCust.toFixed(2)} (Inv)</td><td><button class="btn btn-edit" onclick="editItem(${i})">Edit</button><button class="btn btn-close" style="padding:5px 10px; font-size:12px;" onclick="deleteItem(${i})">X</button></td></tr>`; }); }
     function editItem(i) { let item = cart[i]; document.getElementById("buildingType").value = item.bType; updateRoomOptions(); document.getElementById("towerNameInput").value = item.towerName || ""; document.getElementById("floorSelect").value = (["Ground Floor","Mezzanine Floor","First Floor","Second Floor","Third Floor"].includes(item.floor)) ? item.floor : "Other"; checkManualInput('floorSelect', 'manualFloor'); if(document.getElementById("floorSelect").value === "Other") document.getElementById("manualFloor").value = item.floor; let roomOpts = Array.from(document.getElementById("roomSelect").options).map(o => o.value); if(roomOpts.includes(item.room)) { document.getElementById("roomSelect").value = item.room; } else { document.getElementById("roomSelect").value = "Other"; document.getElementById("manualRoom").style.display = "block"; document.getElementById("manualRoom").value = item.room; } document.getElementById("type").value = item.type; toggleFields(); document.getElementById("fullnessSelect").value = (item.fullnessRatio == 3) ? "3" : (item.fullnessRatio == 2) ? "2" : "custom"; checkCustomFullness(); if(item.fullnessRatio != 3 && item.fullnessRatio != 2) document.getElementById("customFullnessInput").value = item.fullnessRatio; document.getElementById("fabricWidthSelect").value = item.selectedFabWidth; document.getElementById("catalog").value = item.catalog; document.getElementById("fabricNo").value = item.fabricNo; document.getElementById("itemQty").value = item.itemQty; document.getElementById("width").value = item.w * 100; document.getElementById("height").value = item.h * 100; document.getElementById("itemNote").value = item.note; document.getElementById("price").value = item.price; document.getElementById("stitchCharge").value = (item.totalStitch / item.itemQty) || 0; document.getElementById("fixCharge").value = (item.totalFix / item.itemQty) || 0; deleteItem(i); window.scrollTo(0,0); }
     function deleteItem(index) { cart.splice(index, 1); renderDraft(); }
-    function generateDocument(mode, customCart) {
-        currentMode = mode; let itemsToPrint = customCart || cart;
-        document.getElementById("editorSection").style.display = "none"; document.getElementById("docView").style.display = "block";
-        document.getElementById("amountWords").innerText = ""; document.getElementById("docDate").innerText = new Date().toLocaleDateString(); document.getElementById("docRef").innerText = "AMS-" + Math.floor(Math.random() * 1000);
-        let tfoot = document.querySelector("tfoot"); let nameElement = document.getElementById("docToName"); let phoneElement = document.getElementById("docToPhone"); let titleElement = document.getElementById("docTitle"); let termsDiv = document.getElementById("quoteTerms"); let docTable = document.getElementById("docTable"); let receiptBox = document.getElementById("receiptBox"); let amountWordsDiv = document.getElementById("amountWords");
-        docTable.style.display = "table"; receiptBox.style.display = "none"; amountWordsDiv.style.display = "none"; tfoot.style.display = "none"; termsDiv.style.display = "none"; document.getElementById("docFooter").style.display = "table-footer-group"; 
-
-        if (mode === 'receipt') {
-            titleElement.innerText = "RECEIPT VOUCHER"; nameElement.innerText = document.getElementById("custName").value; phoneElement.innerText = document.getElementById("custPhone").value;
-            docTable.style.display = "none"; receiptBox.style.display = "block"; document.getElementById("docFooter").style.display = "none";
-            let advance = parseFloat(document.getElementById("advanceInput").value) || 0; let total = parseFloat(document.getElementById("grandTotal").innerText) || 0;
-            let receiptAmt = (advance > 0) ? advance : total;
-            document.getElementById("rcptName").innerText = document.getElementById("custName").value; document.getElementById("rcptLabelFrom").innerText = "Received from:"; document.getElementById("rcptAmount").innerText = receiptAmt.toFixed(2); document.getElementById("rcptWords").innerText = numberToWords(receiptAmt);
-        } else if (mode === 'invoice' || mode === 'quotation') {
-            titleElement.innerText = (mode === 'invoice') ? "INVOICE" : "QUOTATION"; nameElement.innerText = document.getElementById("custName").value; phoneElement.innerText = document.getElementById("custPhone").value;
-            tfoot.style.display = "table-footer-group"; amountWordsDiv.style.display = "block"; termsDiv.style.display = (mode === 'quotation') ? "block" : "none";
-        } else { 
-            titleElement.innerText = (mode === 'po') ? "PURCHASE ORDER" : "PRODUCTION WORK SHEET"; 
-            nameElement.innerText = (mode === 'po') ? poSupplierName : "Internal Workshop"; phoneElement.innerText = ""; document.getElementById("docFooter").style.display = "none";
-        }
-
-        if (mode !== 'receipt') {
-            let hasStitchOrFix = itemsToPrint.some(item => item.totalStitch > 0 || item.totalFix > 0); let headerRow = document.getElementById("tableHeaderRow");
-            let headers = `<th>#</th><th>Location</th><th>Description</th><th>Size (WxH)</th><th>Qty</th>`; if (mode !== 'invoice' && mode !== 'quotation') headers += `<th>Fabric Qty</th>`; 
-            if (mode === 'invoice' || mode === 'quotation') { headers += `<th>Fab/Mat Price</th>`; if (hasStitchOrFix) headers += `<th>Stitch/Fix</th>`; headers += `<th>Unit Price</th><th>Total</th>`; }
-            headerRow.innerHTML = headers;
-            let footSpan = (mode === 'invoice' || mode === 'quotation') ? (hasStitchOrFix ? 8 : 7) : 6;
-            ["colspanGap", "colspanGapDisc", "colspanGapPrev", "colspanGapGrand", "colspanGapAdv", "colspanGapBal"].forEach(id => { if(document.getElementById(id)) document.getElementById(id).colSpan = footSpan; });
-            let tbody = document.getElementById("docBody"); tbody.innerHTML = ""; globalSubTotal = 0;
-            itemsToPrint.forEach((item, i) => {
-                globalSubTotal += item.totalCost; let unit = item.isCurtain ? "Mtr" : "Sqm"; let tName = item.towerName ? `<br>(${item.towerName})` : "";
-                let locationText = (mode === 'po') ? `<b>${item.bType}</b><br>${item.floor}<br>${item.room}` : `<b>${item.bType}${tName}</b><br>${item.floor}<br>${item.room}`;
-                let methodText = ""; if (item.isCurtain && mode !== 'invoice' && mode !== 'quotation') { let ratio = `1x${item.fullnessRatio}`; methodText = item.railroadingUsed ? `<br><small>(Railroad / ${ratio})</small>` : `<br><small>(Vertical / ${ratio})</small>`; }
-                let desc = `${item.type}${methodText}<br>Cat: ${item.catalog}<br>Fab: ${item.fabricNo}`; if(item.note) desc += `<br><i>[${item.note}]</i>`;
-                let row = `<tr><td>${i+1}</td><td>${locationText}</td><td>${desc}</td><td>${item.w.toFixed(2)}m x ${item.h.toFixed(2)}m</td><td style="text-align:center; font-weight:bold;">${item.itemQty}</td>`;
-                if (mode !== 'invoice' && mode !== 'quotation') { let displayQty = item.totalFabSupp; row += `<td>${displayQty.toFixed(2)} ${unit}<br><small>(${item.calcNote})</small></td>`; }
-                if (mode === 'invoice' || mode === 'quotation') { row += `<td>${item.price.toFixed(2)}</td>`; if(hasStitchOrFix) { let stFixContent = (item.totalStitch > 0 || item.totalFix > 0) ? `<small>St: ${item.totalStitch}<br>Fix: ${item.totalFix}</small>` : ""; row += `<td>${stFixContent}</td>`; } row += `<td><b>${item.calculatedUnitPrice.toFixed(2)}</b></td><td><strong>${item.totalCost.toFixed(2)}</strong></td>`; }
-                tbody.innerHTML += row + "</tr>";
-            });
-            if (mode === 'invoice' || mode === 'quotation') { document.getElementById("subTotal").innerText = globalSubTotal.toFixed(2); calculateGrandTotal(); }
-        }
-    }
     function calculateGrandTotal() { let discount = parseFloat(document.getElementById("discountInput").value) || 0; let advance = parseFloat(document.getElementById("advanceInput").value) || 0; let prevBal = parseFloat(document.getElementById("prevBalanceInput").value) || 0; document.getElementById("displayPrevBal").innerText = prevBal.toFixed(2); if(document.getElementById("dispDiscount")) document.getElementById("dispDiscount").innerText = discount.toFixed(2); if(document.getElementById("dispAdvance")) document.getElementById("dispAdvance").innerText = advance.toFixed(2); let grand = (globalSubTotal - discount) + prevBal; let balance = grand - advance; document.getElementById("grandTotal").innerText = grand.toFixed(2); document.getElementById("balanceDue").innerText = balance.toFixed(2); document.getElementById("amountWords").innerText = "Amount in Words: " + numberToWords(balance); toggleRowPrint("trDiscount", discount); toggleRowPrint("trPrevBal", prevBal); toggleRowPrint("trAdvance", advance); if (discount <= 0 && advance <= 0 && prevBal <= 0) document.getElementById("trBalanceDue").classList.add("hide-if-zero"); else document.getElementById("trBalanceDue").classList.remove("hide-if-zero"); }
     function toggleRowPrint(rowId, val) { if(val <= 0) document.getElementById(rowId).classList.add("hide-if-zero"); else document.getElementById(rowId).classList.remove("hide-if-zero"); }
     function closeDoc() { document.getElementById("editorSection").style.display = "block"; document.getElementById("docView").style.display = "none"; }
