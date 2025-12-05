@@ -3,69 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AMSilks Trading - Simple System</title>
+    <title>AMSilks Pro V9 - Secure Pricing</title>
+    <meta name="theme-color" content="#0056b3">
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 20px; color: #333; }
         .container { max-width: 980px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         
-        /* LOGIN OVERLAY */
-        #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0056b3; z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; color: white; }
-        .login-box { background: white; padding: 30px; border-radius: 10px; text-align: center; color: #333; width: 300px; }
-        .login-box input { font-size: 24px; text-align: center; letter-spacing: 5px; margin: 20px 0; padding: 10px; width: 80%; border: 2px solid #ddd; border-radius: 5px; }
-        .btn-login { background-color: #28a745; color: white; width: 100%; padding: 12px; font-size: 18px; border: none; border-radius: 5px; cursor: pointer; }
+        #networkStatus { position: fixed; top: 0; left: 0; width: 100%; text-align: center; padding: 5px; font-size: 12px; font-weight: bold; color: white; z-index: 10000; display: none; }
+        .status-online { background-color: #28a745; }
+        .status-offline { background-color: #dc3545; }
 
-        /* Header */
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 86, 179, 0.9); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        .box-content { background: white; padding: 30px; border-radius: 10px; text-align: center; color: #333; width: 350px; max-width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        .box-content input, .box-content select { font-size: 16px; padding: 10px; width: 90%; border: 2px solid #ddd; border-radius: 5px; margin: 10px 0; }
+        
+        .po-list { text-align: left; max-height: 200px; overflow-y: auto; margin: 15px 0; border: 1px solid #eee; padding: 10px; }
+        .po-item { display: flex; align-items: center; border-bottom: 1px solid #f1f1f1; padding: 5px 0; }
+        .po-item input { width: auto; margin-right: 10px; transform: scale(1.5); }
+        .po-item label { font-size: 13px; cursor: pointer; flex: 1; }
+
+        .btn-login { background-color: #28a745; color: white; width: 100%; padding: 12px; font-size: 16px; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-cancel { background-color: #dc3545; color: white; width: 48%; padding: 10px; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-confirm { background-color: #0056b3; color: white; width: 48%; padding: 10px; border: none; border-radius: 5px; cursor: pointer; }
+
         header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #0056b3; padding-bottom: 15px; }
         header h1 { margin: 0; color: #0056b3; font-size: 32px; text-transform: uppercase; letter-spacing: 1px; }
         header .sub-head { font-size: 14px; color: #555; margin-top: 3px; font-weight: bold; }
         header .web-info { font-size: 13px; color: #0056b3; margin-top: 5px; }
         
-        /* Inputs & Layout */
         .input-group { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 15px; }
         .input-box { flex: 1; min-width: 150px; }
         label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 13px; color: #555; }
         input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        
         .section-box { background: #eef2f5; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #d1d9e6; }
-        .hidden-input { display: none; margin-top: 5px; }
+        .section-title { font-size: 18px; margin-bottom: 15px; color: #0056b3; font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
 
-        /* Buttons */
-        .btn { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; color: white; margin-top:5px; transition: 0.3s; font-weight: bold; }
+        .btn { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; color: white; transition: 0.3s; margin-top: 10px; font-weight: bold; }
         .btn-add { background-color: #28a745; width: 100%; padding: 12px; font-size: 16px; }
         .btn-inv { background-color: #0056b3; } 
-        .btn-quote { background-color: #ffc107; color: #333; }
-        .btn-receipt { background-color: #20c997; color: white; }
-        .btn-po { background-color: #e67e22; }
-        .btn-prod { background-color: #6f42c1; }
-        .btn-edit { background-color: #17a2b8; padding: 5px 10px; font-size: 12px; }
+        .btn-quote { background-color: #ffc107; color: #333; } 
+        .btn-receipt { background-color: #20c997; color: white; } 
+        .btn-payment { background-color: #e83e8c; color: white; } 
+        .btn-stmt { background-color: #6610f2; color: white; } 
+        .btn-po { background-color: #fd7e14; color: white; } 
+        .btn-prod { background-color: #6f42c1; } 
+        .btn-edit { background-color: #17a2b8; padding: 5px 10px; font-size: 12px; margin-right: 5px; }
         .btn-wa { background-color: #25D366; }
         .btn-print { background-color: #6c757d; }
         .btn-close { background-color: #dc3545; }
-        
-        .bottom-actions { margin-top: 30px; padding-top: 20px; border-top: 2px solid #eee; }
-        .btn-save { background-color: #17a2b8; padding: 15px; width: 100%; font-size: 18px; margin-bottom: 10px; }
-        .btn-history { background-color: #343a40; width: 100%; padding: 12px; }
-        .btn-clear { background-color: #dc3545; width: 100%; padding: 12px; margin-top: 10px; }
+        .btn-save-doc { background-color: #17a2b8; font-weight: bold; padding: 12px 20px; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.3); }
 
-        /* Tables & Lists */
+        .bottom-actions { margin-top: 40px; padding-top: 20px; border-top: 2px solid #eee; }
+        .btn-save { background-color: #17a2b8; padding: 15px; font-size: 18px; width: 100%; margin-bottom: 10px; }
+        .btn-history { background-color: #343a40; padding: 12px; flex: 1; }
+        .btn-sync { background-color: #0056b3; padding: 12px; flex: 1; margin-top: 10px; }
+        .btn-clear { background-color: #dc3545; padding: 12px; width: 100%; margin-top: 15px; }
+        .admin-controls { display: none; gap: 10px; width: 100%; }
+        .admin-only-btn { display: none; }
+        .hidden-input { display: none; margin-top: 5px; }
+
         #savedListArea { display: none; background: #fff8e1; padding: 15px; border: 1px solid #ffeeba; margin-bottom: 20px; border-radius: 5px; }
         .saved-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #ddd; background: white; margin-bottom: 5px; }
         
+        .receipt-box { display: none; border: 2px solid #333; padding: 20px; margin-top: 20px; background: #fff; position: relative; }
+        .receipt-row { display: flex; margin-bottom: 15px; align-items: baseline; }
+        .receipt-label { font-weight: bold; width: 150px; min-width: 120px; color: #555; }
+        .receipt-value { border-bottom: 1px dotted #333; flex: 1; padding-bottom: 5px; font-weight: 500; font-size: 18px; color: #000; }
+        .receipt-amount-box { border: 2px solid #333; padding: 10px 20px; font-size: 24px; font-weight: bold; display: inline-block; margin-top: 20px; background: #f8f9fa; }
+        .receipt-footer { display: flex; justify-content: space-between; margin-top: 50px; }
+        .receipt-sig { border-top: 1px solid #333; width: 200px; text-align: center; padding-top: 5px; font-size: 14px; }
+
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
         th, td { border: 1px solid #dee2e6; padding: 8px; text-align: left; vertical-align: middle; }
         th { background-color: #f1f3f5; font-weight: bold; }
         .text-right { text-align: right; }
-
-        /* Receipt Box Design */
-        .receipt-box { display: none; border: 2px solid #333; padding: 20px; margin-top: 20px; background: #fff; }
-        .receipt-row { display: flex; margin-bottom: 15px; align-items: baseline; }
-        .receipt-label { font-weight: bold; width: 150px; color: #555; }
-        .receipt-value { border-bottom: 1px dotted #333; flex: 1; padding-bottom: 5px; font-weight: 500; font-size: 18px; }
-        .receipt-amount-box { border: 2px solid #333; padding: 10px 20px; font-size: 24px; font-weight: bold; display: inline-block; margin-top: 20px; background: #f8f9fa; }
-        .receipt-footer { display: flex; justify-content: space-between; margin-top: 50px; }
-        .receipt-sig { border-top: 1px solid #333; width: 200px; text-align: center; padding-top: 5px; }
-
-        #docView { display: none; }
+        
         .amount-words { margin-top: 15px; font-style: italic; font-weight: bold; border-top: 1px solid #eee; padding-top: 10px; }
+        #docView { display: none; }
+        .no-print { display: flex; }
 
         @media print {
             body * { visibility: hidden; }
@@ -78,32 +94,100 @@
 </head>
 <body>
 
-<div id="loginOverlay">
-    <div style="margin-bottom: 20px; font-size: 24px; font-weight: bold; color:white;">AMSilks Trading</div>
-    <div class="login-box">
-        <h3>Login</h3>
-        <input type="password" id="loginPin" placeholder="PIN" maxlength="4">
+<div id="networkStatus"></div>
+
+<div id="loginOverlay" class="overlay">
+    <div style="margin-bottom: 20px; font-size: 24px; font-weight: bold; color:white;">AMSilks Trading System</div>
+    <div class="box-content">
+        <h3>Login Required</h3>
+        <input type="password" id="loginPin" placeholder="PIN" maxlength="4" onkeyup="if(event.key === 'Enter') checkLogin()">
         <button class="btn-login" onclick="checkLogin()">Unlock</button>
     </div>
 </div>
 
+<div id="poModal" class="overlay" style="display:none; z-index:10001;">
+    <div class="box-content" style="text-align:left;">
+        <h3 style="margin-top:0; text-align:center;">Generate Purchase Order</h3>
+        <label style="font-size:12px;">Supplier Name:</label>
+        <input type="text" id="poSupplierInput" placeholder="Enter Supplier Name" list="savedNamesList">
+        <div class="po-list" id="poListContainer"></div>
+        <div style="display:flex; justify-content:space-between;">
+            <button class="btn-cancel" onclick="document.getElementById('poModal').style.display='none'">Cancel</button>
+            <button class="btn-confirm" onclick="generatePOFromSelection()">Generate PO</button>
+        </div>
+    </div>
+</div>
+
+<div id="statementModal" class="overlay" style="display:none; z-index:10001;">
+    <div class="box-content" style="text-align:left;">
+        <h3 style="margin-top:0; text-align:center;">Generate Statement</h3>
+        <label>Select Type:</label>
+        <select id="stmtType">
+            <option value="Customer">Customer Statement</option>
+            <option value="Supplier">Supplier Statement</option>
+        </select>
+        <label>Name:</label>
+        <input type="text" id="stmtNameInput" placeholder="Enter Name..." list="savedNamesList">
+        <div style="display:flex; justify-content:space-between; margin-top:20px;">
+            <button class="btn-cancel" onclick="document.getElementById('statementModal').style.display='none'">Close</button>
+            <button class="btn-stmt" onclick="generateStatement()" style="width:48%; padding:10px; border:none; border-radius:5px; cursor:pointer;">Generate</button>
+        </div>
+    </div>
+</div>
+
+<div id="directReceiptModal" class="overlay" style="display:none; z-index:10001;">
+    <div class="box-content" style="text-align:left;">
+        <h3 style="margin-top:0; text-align:center; color:#20c997;">💰 Money In (Receipt)</h3>
+        <label>Customer Name:</label>
+        <input type="text" id="rcptCustName" placeholder="Name" list="savedNamesList">
+        <label>Amount Received:</label>
+        <input type="number" id="rcptCustAmount" placeholder="0.00">
+        <div style="display:flex; justify-content:space-between; margin-top:20px;">
+            <button class="btn-cancel" onclick="document.getElementById('directReceiptModal').style.display='none'">Close</button>
+            <button class="btn-receipt" onclick="generateDirectReceipt()" style="width:48%; padding:10px; border:none; border-radius:5px; cursor:pointer;">Create Receipt</button>
+        </div>
+    </div>
+</div>
+
+<div id="paymentModal" class="overlay" style="display:none; z-index:10001;">
+    <div class="box-content" style="text-align:left;">
+        <h3 style="margin-top:0; text-align:center; color:#e83e8c;">💸 Money Out (Payment)</h3>
+        <label>Paid To (Supplier):</label>
+        <input type="text" id="paySuppName" placeholder="Supplier Name" list="savedNamesList">
+        <label>Amount Paid:</label>
+        <input type="number" id="payAmount" placeholder="0.00">
+        <label>Discount Received (If any):</label>
+        <input type="number" id="payDiscount" placeholder="0.00" value="0">
+        <div style="display:flex; justify-content:space-between; margin-top:20px;">
+            <button class="btn-cancel" onclick="document.getElementById('paymentModal').style.display='none'">Close</button>
+            <button class="btn-payment" onclick="generatePaymentVoucher()" style="width:48%; padding:10px; border:none; border-radius:5px; cursor:pointer;">Create Voucher</button>
+        </div>
+    </div>
+</div>
+
+<datalist id="savedNamesList"></datalist>
+
 <div class="container" id="editorSection">
+    
     <header>
-        <h1>AMSilks Trading W.L.L.</h1>
+        <h1>AMSilks Trading <span id="userRoleBadge" class="role-badge"></span></h1>
         <div class="sub-head">Doha - Qatar | CR No: 224866</div>
+        <div style="text-align: right; float: right;">
+            <button onclick="logout()" style="background:none; border:none; color:#dc3545; cursor:pointer; font-size:12px;">Logout</button>
+        </div>
         <div class="web-info">www.amsilks.com | info@amsilks.com</div>
     </header>
 
     <div id="savedListArea">
-        <h3>Saved History</h3>
+        <h3>Saved Orders (History)</h3>
+        <button id="pendingSyncBtn" class="btn btn-sync" style="background:#dc3545; display:none; margin-bottom:10px;" onclick="syncPendingOrders()">⚠️ Sync Pending</button>
         <div id="savedItemsContainer"></div>
-        <button class="btn btn-close" onclick="toggleSavedList()">Close List</button>
+        <button class="btn btn-close" onclick="toggleSavedList()" style="margin-top:10px;">Close List</button>
     </div>
 
     <div class="input-group">
-        <div class="input-box"><label>Customer Name</label><input type="text" id="custName"></div>
+        <div class="input-box"><label>Customer Name</label><input type="text" id="custName" list="savedNamesList"></div>
         <div class="input-box"><label>Customer Phone</label><input type="tel" id="custPhone"></div>
-        <div class="input-box"><label>Supplier Name (For PO)</label><input type="text" id="suppName"></div>
         <div class="input-box" style="background: #fff3cd; border-radius: 5px; padding: 5px;">
             <label>Previous Balance</label>
             <input type="number" id="prevBalanceInput" value="0" style="font-weight:bold; color:#856404;" oninput="calculateGrandTotal()">
@@ -111,57 +195,53 @@
     </div>
 
     <div class="section-box">
-        <div class="section-title">Add Items / Measurements</div>
-        
+        <div class="section-title">Add Measurements</div>
         <div class="input-group">
-            <div class="input-box"><label>Building Type</label><select id="buildingType" onchange="updateRoomOptions()"><option value="House">House / Villa</option><option value="Tower">Tower / Building</option><option value="Other">Other</option></select><input type="text" id="towerNameInput" class="hidden-input" placeholder="Enter Tower Name"></div>
-            <div class="input-box"><label>Floor</label><select id="floorSelect" onchange="checkManualInput('floorSelect', 'manualFloor')"><option value="Ground Floor">Ground Floor</option><option value="First Floor">First Floor</option><option value="Other">Other</option></select><input type="text" id="manualFloor" class="hidden-input" placeholder="Type Floor"></div>
-            <div class="input-box"><label>Room Name</label><select id="roomSelect" onchange="checkManualInput('roomSelect', 'manualRoom')"></select><input type="text" id="manualRoom" class="hidden-input" placeholder="Type Room Name"></div>
-        </div>
-
-        <div class="input-group">
-            <div class="input-box"><label>Type</label><select id="type" onchange="toggleFields()"><option value="Heavy Curtain">Heavy Curtain</option><option value="Sheer Curtain">Sheer Curtain</option><option value="Roller Blind">Roller Blind</option><option value="Roman Blind">Roman Blind</option><option value="Other">Other</option></select></div>
-            <div class="input-box" id="fullnessBox"><label>Fullness</label><select id="fullnessSelect" onchange="checkCustomFullness()"><option value="3">Normal (1 x 3)</option><option value="2">Project (1 x 2)</option><option value="custom">Custom</option></select><input type="number" id="customFullnessInput" class="hidden-input" placeholder="Enter Ratio"></div>
-            <div class="input-box" id="fabricWidthBox"><label>Fabric Width</label><select id="fabricWidthSelect"><option value="1.4">Standard (1.4)</option><option value="2.8">Wide (2.8)</option><option value="3.0">Wide (3.0)</option></select></div>
+            <div class="input-box"><label>Building/Floor</label><input type="text" id="room" placeholder="Ex: Ground Floor - Majlis"></div>
+            <div class="input-box"><label>Type</label><select id="type" onchange="toggleFields()"><option>Heavy Curtain</option><option>Sheer Curtain</option><option>Blackout</option><option>Roller Blind</option><option>Roman Blind</option><option>Other</option></select></div>
             <div class="input-box"><label>Fabric No</label><input type="text" id="fabricNo"></div>
         </div>
-
         <div class="input-group">
-            <div class="input-box" style="max-width: 100px;"><label>Qty</label><input type="number" id="itemQty" value="1"></div>
-            <div class="input-box"><label>W (cm)</label><input type="number" id="width"></div>
-            <div class="input-box"><label>H (cm)</label><input type="number" id="height"></div>
-            <div class="input-box"><label>Price</label><input type="number" id="price"></div>
+            <div class="input-box" style="max-width: 80px;"><label>Qty</label><input type="number" id="itemQty" value="1"></div>
+            <div class="input-box"><label>W (cm)</label><input type="number" id="width" placeholder="Width"></div>
+            <div class="input-box"><label>H (cm)</label><input type="number" id="height" placeholder="Height"></div>
+            <div class="input-box" id="fullnessBox"><label>Ratio</label><input type="number" id="fullness" value="3"></div>
+        </div>
+        <div class="input-group" style="background: #e9ecef; padding: 10px; border: 1px dashed #999;">
+            <div class="input-box"><label>Selling Price (For Customer)</label><input type="number" id="price" style="border-color: blue;"></div>
+            <div class="input-box admin-only-btn"><label>Buying Cost (For Supplier)</label><input type="number" id="costPrice" style="border-color: orange;"></div>
             <div class="input-box" id="stitchingBox"><label>Stitch Rate</label><input type="number" id="stitchCharge" value="0"></div>
             <div class="input-box"><label>Fixing Rate</label><input type="number" id="fixCharge" value="0"></div>
         </div>
-
-        <button class="btn btn-add" onclick="addItem()">+ Add to List</button>
+        <button class="btn btn-add" onclick="addItem()">+ Add Item</button>
     </div>
 
-    <h3>Item List</h3>
-    <table id="draftTable">
-        <thead><tr><th>Details</th><th>Size</th><th>Total</th><th>Action</th></tr></thead>
-        <tbody></tbody>
-    </table>
-
+    <h3>Draft Items</h3>
+    <table id="draftTable"><thead><tr><th>Details</th><th>Size</th><th>Total</th><th>Action</th></tr></thead><tbody></tbody></table>
+    
     <div style="display:flex; gap:10px; margin-top:20px; background: #eee; padding:10px; border-radius:5px;">
-        <div class="input-box"><label>Discount</label><input type="number" id="discountInput" value="0" oninput="calculateGrandTotal()"></div>
-        <div class="input-box"><label>Advance / Receipt Amount</label><input type="number" id="advanceInput" value="0" style="font-weight:bold; color:green;" oninput="calculateGrandTotal()"></div>
+        <div class="input-box"><label>Discount (Cust)</label><input type="number" id="discountInput" value="0" oninput="calculateGrandTotal()"></div>
+        <div class="input-box"><label>Advance Paid</label><input type="number" id="advanceInput" value="0" style="font-weight:bold; color:green;" oninput="calculateGrandTotal()"></div>
     </div>
 
     <br>
     <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
         <button class="btn btn-inv" onclick="generateDocument('invoice')">Invoice</button>
         <button class="btn btn-quote" onclick="generateDocument('quotation')">Quotation</button>
-        <button class="btn btn-receipt" onclick="generateDocument('receipt')">Receipt Voucher</button>
-        <button class="btn btn-po" onclick="generateDocument('po')">Purchase Order</button>
+        <button class="btn btn-receipt" onclick="openDirectReceiptModal()">💰 Receipt (In)</button>
+        <button class="btn btn-payment admin-only-btn" onclick="openPaymentModal()">💸 Payment (Out)</button>
+        <button class="btn btn-stmt" onclick="openStatementModal()">Statement</button> 
+        <button class="btn btn-po admin-only-btn" onclick="openPOModal()">Purchase Order</button>
         <button class="btn btn-prod" onclick="generateDocument('production')">Production</button>
     </div>
 
     <div class="bottom-actions">
-        <button class="btn btn-save" onclick="saveCurrentOrder()">💾 Save to Google Sheet</button>
-        <button class="btn btn-history" onclick="toggleSavedList()">📂 Open History</button>
-        <button class="btn btn-clear" onclick="clearData()">❌ Clear All</button>
+        <button class="btn btn-save" onclick="saveCurrentOrder()">💾 Save to Cloud</button>
+        <div class="admin-controls">
+            <button class="btn btn-history" onclick="toggleSavedList()">📂 History</button>
+            <button class="btn btn-sync" onclick="syncFromCloud()">🔄 Download</button>
+        </div>
+        <button class="btn btn-clear" onclick="clearData()">❌ Clear</button>
     </div>
 </div>
 
@@ -169,7 +249,7 @@
     <header>
         <h1>AMSilks Trading W.L.L.</h1>
         <div class="sub-head">Doha - Qatar | CR No: 224866</div>
-        <div class="sub-head">Contact: 77070221</div>
+        <div class="sub-head">Contact / WhatsApp: 77070221</div>
         <h2 id="docTitle" style="margin-top:10px; color:#555;">INVOICE</h2>
         <div style="display:flex; justify-content:space-between; margin-top:20px;">
             <div><strong>To:</strong> <span id="docToName"></span><br><span id="docToPhone"></span></div>
@@ -177,23 +257,21 @@
         </div>
     </header>
 
-    <table id="docTable">
-        <thead><tr id="tableHeaderRow"></tr></thead>
-        <tbody id="docBody"></tbody>
-        <tfoot class="price-col">
-            <tr><td id="colspanGap" class="text-right"><strong>Total:</strong></td><td id="subTotal">0.00</td></tr>
+    <table id="docTable"><thead><tr id="tableHeaderRow"></tr></thead><tbody id="docBody"></tbody>
+        <tfoot class="price-col" id="docFooter">
+            <tr><td id="colspanGap" class="text-right"><strong>Total Amount:</strong></td><td id="subTotal">0.00</td></tr>
             <tr id="trDiscount"><td id="colspanGapDisc" class="text-right"><strong>Discount:</strong></td><td id="dispDiscount">0.00</td></tr>
-            <tr id="trPrevBal" style="background-color: #fff3cd;"><td id="colspanGapPrev" class="text-right"><strong>Old Due:</strong></td><td id="displayPrevBal">0.00</td></tr>
+            <tr id="trPrevBal" style="background-color: #fff3cd;"><td id="colspanGapPrev" class="text-right"><strong>+ Previous Balance:</strong></td><td id="displayPrevBal">0.00</td></tr>
             <tr><td id="colspanGapGrand" class="text-right" style="font-size:16px;"><strong>GRAND TOTAL:</strong></td><td id="grandTotal" style="font-size:16px; font-weight:bold;">0.00</td></tr>
-            <tr id="trAdvance"><td id="colspanGapAdv" class="text-right"><strong>Paid:</strong></td><td id="dispAdvance">0.00</td></tr>
-            <tr id="trBalanceDue"><td id="colspanGapBal" class="text-right" style="color: #dc3545;"><strong>BALANCE:</strong></td><td id="balanceDue" style="font-weight:bold; color: #dc3545; font-size:15px;">0.00</td></tr>
+            <tr id="trAdvance"><td id="colspanGapAdv" class="text-right"><strong>- Advance Paid:</strong></td><td id="dispAdvance">0.00</td></tr>
+            <tr id="trBalanceDue"><td id="colspanGapBal" class="text-right" style="color: #dc3545;"><strong>BALANCE DUE:</strong></td><td id="balanceDue" style="font-weight:bold; color: #dc3545; font-size:15px;">0.00</td></tr>
         </tfoot>
     </table>
 
     <div id="receiptBox" class="receipt-box">
-        <div class="receipt-row"><div class="receipt-label">Received from:</div><div class="receipt-value" id="rcptName"></div></div>
+        <div class="receipt-row"><div class="receipt-label" id="rcptLabelFrom">Received from:</div><div class="receipt-value" id="rcptName"></div></div>
         <div class="receipt-row"><div class="receipt-label">The sum of:</div><div class="receipt-value" id="rcptWords"></div></div>
-        <div class="receipt-row"><div class="receipt-label">Being:</div><div class="receipt-value">Advance / Payment for Curtain Works</div></div>
+        <div class="receipt-row"><div class="receipt-label">Being:</div><div class="receipt-value" id="rcptBeing"></div></div>
         <div style="display:flex; justify-content: space-between; align-items: flex-end;">
             <div class="receipt-amount-box">QR <span id="rcptAmount">0.00</span></div>
             <div style="font-size:12px;">Mode: Cash &nbsp;☐&nbsp;&nbsp; Card &nbsp;☐&nbsp;&nbsp; Cheque &nbsp;☐</div>
@@ -204,251 +282,296 @@
     <div id="amountWords" class="amount-words no-print-placeholder"></div>
 
     <div class="no-print" style="margin-top: 30px; text-align: center; display: flex; gap: 10px; justify-content: center;">
-        <button class="btn btn-save" onclick="saveCurrentOrder()" style="width:auto;">💾 Save</button>
+        <button class="btn btn-save-doc" onclick="saveCurrentOrder()">💾 Save Record</button>
         <button class="btn btn-print" onclick="window.print()">Print / PDF</button>
         <button class="btn btn-wa" onclick="sendWhatsapp()">WhatsApp</button>
-        <button class="btn btn-close" onclick="closeDoc()">Back</button>
+        <button class="btn btn-close" onclick="closeDoc()">Back / Close</button>
     </div>
 </div>
 
 <script>
-    // GOOGLE SHEET URL - UPDATE THIS IF NEEDED
     const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwTRm-mr-jkWPwf34CypR0ppqBqMT-YuF1kqRTw7Qes88f8On4A29e2htFpCGl_yoRJ_A/exec";
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
+    window.addEventListener('online', updateNetworkStatus); window.addEventListener('offline', updateNetworkStatus);
 
-    let cart = []; let currentMode = 'invoice'; let globalSubTotal = 0; let currentUserRole = 'sales';
-    const curtainTypes = ["Heavy Curtain", "Sheer Curtain", "Blackout Curtain"];
+    function updateNetworkStatus() {
+        let statusDiv = document.getElementById("networkStatus");
+        if (navigator.onLine) { statusDiv.style.display = "block"; statusDiv.innerText = "ONLINE - Syncing..."; statusDiv.className = "status-online"; setTimeout(() => { statusDiv.style.display = "none"; syncPendingOrders(); }, 3000); } 
+        else { statusDiv.style.display = "block"; statusDiv.innerText = "OFFLINE"; statusDiv.className = "status-offline"; }
+    }
 
-    window.onload = function() { updateRoomOptions(); };
+    let cart = []; let currentMode = 'invoice'; let currentUserRole = null; let tempDocData = {}; 
+
+    window.onload = function() { updateNetworkStatus(); checkPendingSyncs(); populateDatalist(); };
 
     function checkLogin() {
         let pin = document.getElementById("loginPin").value;
-        if(pin === "9999") { currentUserRole = 'admin'; document.getElementById("loginOverlay").style.display = "none"; }
-        else if(pin === "1111") { currentUserRole = 'sales'; document.getElementById("loginOverlay").style.display = "none"; }
-        else { alert("Wrong PIN"); }
+        if(pin === "9999") { loginSuccess("admin"); } else if (pin === "1111") { loginSuccess("sales"); } else { alert("Wrong PIN!"); }
+    }
+
+    function loginSuccess(role) {
+        currentUserRole = role; document.getElementById("loginOverlay").style.display = "none";
+        let badge = document.getElementById("userRoleBadge"); badge.innerText = role.toUpperCase(); badge.className = "role-badge " + (role === 'admin' ? "role-admin" : "role-sales");
+        if (role === 'admin') { document.querySelector('.admin-controls').style.display = "flex"; document.querySelectorAll('.admin-only-btn').forEach(b => b.style.display = "block"); } 
+        else { document.querySelector('.admin-controls').style.display = "none"; document.querySelectorAll('.admin-only-btn').forEach(b => b.style.display = "none"); }
     }
 
     function logout() { location.reload(); }
+    function populateDatalist() {
+        let savedOrders = JSON.parse(localStorage.getItem("amsilksSavedOrders") || "[]");
+        let names = [...new Set([...savedOrders.map(o=>o.custName), ...savedOrders.map(o=>o.suppName)])].filter(n=>n);
+        let dl = document.getElementById("savedNamesList"); dl.innerHTML = "";
+        names.forEach(n => { let opt = document.createElement("option"); opt.value = n; dl.appendChild(opt); });
+    }
 
-    function saveCurrentOrder() {
-        let name = document.getElementById("custName").value || "Unnamed";
-        // If Receipt Mode, allow saving without items (just amount)
-        if (currentMode !== 'receipt' && cart.length === 0) { alert("Cart is empty!"); return; }
+    // --- MODALS ---
+    function openDirectReceiptModal() { populateDatalist(); document.getElementById("directReceiptModal").style.display = "flex"; }
+    function generateDirectReceipt() {
+        let name = document.getElementById("rcptCustName").value.trim(); let amt = parseFloat(document.getElementById("rcptCustAmount").value);
+        if(!name || !amt) { alert("Enter details"); return; }
+        document.getElementById("directReceiptModal").style.display = "none";
+        setupDocView('receipt', name, amt, "Payment Received from Customer");
+    }
+
+    function openPaymentModal() { populateDatalist(); document.getElementById("paymentModal").style.display = "flex"; }
+    function generatePaymentVoucher() {
+        let name = document.getElementById("paySuppName").value.trim(); let amt = parseFloat(document.getElementById("payAmount").value);
+        let disc = parseFloat(document.getElementById("payDiscount").value) || 0;
+        if(!name || !amt) { alert("Enter details"); return; }
+        document.getElementById("paymentModal").style.display = "none";
+        setupDocView('payment', name, amt, "Paid to Supplier", disc);
+    }
+
+    function openPOModal() {
+        populateDatalist();
+        if (cart.length === 0) { alert("Cart is empty!"); return; }
+        document.getElementById("poModal").style.display = "flex";
+        let list = document.getElementById("poListContainer"); list.innerHTML = "";
+        cart.forEach((item, index) => {
+            let div = document.createElement("div"); div.className = "po-item";
+            div.innerHTML = `<input type="checkbox" id="chk_${index}" value="${index}" checked> <label for="chk_${index}">${item.room} - ${item.type} (Fab: ${item.fabricNo})</label>`;
+            list.appendChild(div);
+        });
+    }
+    function generatePOFromSelection() {
+        let suppName = document.getElementById("poSupplierInput").value.trim();
+        if (!suppName) { alert("Enter Supplier Name!"); return; }
+        let selectedIndices = []; 
+        document.querySelectorAll("#poListContainer input[type='checkbox']").forEach(chk => { if (chk.checked) selectedIndices.push(parseInt(chk.value)); });
+        if (selectedIndices.length === 0) { alert("Select items!"); return; }
+        document.getElementById("poModal").style.display = "none";
         
-        let grandTotal = document.getElementById("grandTotal").innerText;
-        let advance = document.getElementById("advanceInput").value || 0;
-        let supp = document.getElementById("suppName").value;
+        let printCart = selectedIndices.map(i => cart[i]); 
+        // CALCULATE PO TOTAL BASED ON BUYING COST
+        let poTotal = printCart.reduce((sum, item) => sum + ((item.costPrice || 0) * item.itemQty * item.w * item.h / 10000), 0); // Approx cost logic
+        // Simplified Cost Logic for now: Cost * Qty * Meters
+        
+        tempDocData = { name: suppName, amount: poTotal }; 
+        generateDocument('po', printCart);
+    }
 
-        // If Receipt mode, the 'Grand Total' field isn't relevant, we use the Advance Input as the Amount
-        if(currentMode === 'receipt') {
-            grandTotal = advance; // The receipt amount
+    function setupDocView(mode, name, amount, desc, discount=0) {
+        currentMode = mode;
+        tempDocData = { name: name, amount: amount, desc: desc, discount: discount }; 
+        document.getElementById("editorSection").style.display = "none"; document.getElementById("docView").style.display = "block";
+        document.getElementById("docTitle").innerText = (mode==='receipt')?"RECEIPT VOUCHER":"PAYMENT VOUCHER";
+        document.getElementById("docToName").innerText = name; document.getElementById("docTable").style.display = "none"; document.getElementById("docFooter").style.display = "none";
+        document.getElementById("receiptBox").style.display = "block";
+        document.getElementById("rcptLabelFrom").innerText = (mode==='payment')?"Paid To:":"Received from:";
+        document.getElementById("rcptName").innerText = name; document.getElementById("rcptWords").innerText = numberToWords(amount);
+        document.getElementById("rcptAmount").innerText = amount.toFixed(2); document.getElementById("rcptBeing").innerText = desc;
+        if(discount > 0) document.getElementById("rcptBeing").innerText += ` (Discount Received: ${discount})`;
+    }
+
+    // --- SAVE LOGIC ---
+    function saveCurrentOrder() {
+        let name = document.getElementById("custName").value.trim();
+        let grandTotal = parseFloat(document.getElementById("grandTotal").innerText) || 0;
+        let orderData = { id: Date.now(), date: new Date().toLocaleString(), savedBy: currentUserRole.toUpperCase(), isSynced: false, advance: 0, discount: 0 };
+
+        if (currentMode === 'receipt') {
+            orderData.recordType = 'receipt'; orderData.custName = tempDocData.name; orderData.grandTotal = tempDocData.amount; orderData.suppName = ""; 
+        } else if (currentMode === 'payment') {
+            orderData.recordType = 'payment'; orderData.suppName = tempDocData.name; orderData.grandTotal = tempDocData.amount; orderData.custName = "";
+            orderData.discount = tempDocData.discount; 
+        } else if (currentMode === 'po') {
+            orderData.recordType = 'po'; orderData.suppName = tempDocData.name; orderData.custName = "";
+            // CALCULATE TOTAL COST FOR PO RECORD
+            let poCart = tempDocData.cart || cart; 
+            let poCost = poCart.reduce((sum, i) => sum + (i.totalCostPrice || 0), 0);
+            orderData.grandTotal = poCost; 
+            orderData.cart = poCart;
+        } else {
+            // Invoice
+            if(cart.length === 0) { alert("Empty!"); return; }
+            orderData.recordType = currentMode; orderData.custName = name || "Unnamed";
+            orderData.custPhone = document.getElementById("custPhone").value;
+            orderData.grandTotal = grandTotal;
+            orderData.advance = document.getElementById("advanceInput").value;
+            orderData.discount = document.getElementById("discountInput").value;
+            orderData.cart = cart;
         }
 
-        let orderData = {
-            id: Date.now(),
-            date: new Date().toLocaleString(),
-            custName: name,
-            custPhone: document.getElementById("custPhone").value,
-            suppName: supp,
-            recordType: currentMode, // Saves as 'invoice', 'po', 'receipt' etc.
-            grandTotal: grandTotal,
-            advance: advance,
-            cart: cart
-        };
-
-        // Save Locally
         let savedOrders = JSON.parse(localStorage.getItem("amsilksSavedOrders") || "[]");
         savedOrders.push(orderData);
         localStorage.setItem("amsilksSavedOrders", JSON.stringify(savedOrders));
 
-        // Save to Cloud
-        let btn = document.querySelectorAll(".btn-save");
-        btn.forEach(b => { b.innerText = "Saving..."; b.disabled = true; });
-
-        fetch(SHEET_API_URL, {
-            method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" },
-            body: JSON.stringify(orderData)
-        }).then(() => {
-            alert("Saved Successfully!");
-            btn.forEach(b => { b.innerText = "💾 Save to Google Sheet"; b.disabled = false; });
-        }).catch(err => {
-            alert("Saved Locally Only (Check Net).");
-            btn.forEach(b => { b.innerText = "💾 Save to Google Sheet"; b.disabled = false; });
-        });
+        if (navigator.onLine) {
+            let btn = document.querySelector(".btn-save-doc"); if(btn) btn.innerText = "Syncing...";
+            fetch(SHEET_API_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(orderData) })
+            .then(() => { alert("Saved!"); markSynced(orderData.id); if(btn) btn.innerText = "Saved ✔"; })
+            .catch(() => { alert("Saved Offline"); if(btn) btn.innerText = "Saved (Offline)"; });
+        } else { alert("Saved Offline"); }
     }
 
-    function generateDocument(mode) {
-        currentMode = mode;
-        document.getElementById("editorSection").style.display = "none";
-        document.getElementById("docView").style.display = "block";
-        document.getElementById("docDate").innerText = new Date().toLocaleDateString();
-        document.getElementById("docRef").innerText = "AMS-" + Math.floor(Math.random() * 1000);
-        
-        let table = document.getElementById("docTable");
-        let receiptBox = document.getElementById("receiptBox");
-        let tfoot = document.querySelector("tfoot");
-        let title = document.getElementById("docTitle");
-        let nameEl = document.getElementById("docToName");
-
-        table.style.display = "table"; 
-        receiptBox.style.display = "none";
-        tfoot.style.display = "table-footer-group";
-        document.getElementById("amountWords").style.display = "block";
-
-        if(mode === 'invoice') {
-            title.innerText = "INVOICE";
-            nameEl.innerText = document.getElementById("custName").value;
-        } else if(mode === 'quotation') {
-            title.innerText = "QUOTATION";
-            nameEl.innerText = document.getElementById("custName").value;
-        } else if(mode === 'po') {
-            title.innerText = "PURCHASE ORDER";
-            nameEl.innerText = document.getElementById("suppName").value;
-            tfoot.style.display = "none";
-        } else if(mode === 'production') {
-            title.innerText = "PRODUCTION SHEET";
-            nameEl.innerText = "Internal Workshop";
-            tfoot.style.display = "none";
-        } else if(mode === 'receipt') {
-            title.innerText = "RECEIPT VOUCHER";
-            table.style.display = "none";
-            tfoot.style.display = "none";
-            document.getElementById("amountWords").style.display = "none";
-            receiptBox.style.display = "block";
-            
-            let amt = parseFloat(document.getElementById("advanceInput").value) || 0;
-            document.getElementById("rcptName").innerText = document.getElementById("custName").value;
-            document.getElementById("rcptAmount").innerText = amt.toFixed(2);
-            document.getElementById("rcptWords").innerText = numberToWords(amt);
-        }
-
-        if(mode !== 'receipt') {
-            let tbody = document.getElementById("docBody");
-            let header = document.getElementById("tableHeaderRow");
-            tbody.innerHTML = "";
-            header.innerHTML = `<th>#</th><th>Description</th><th>Size</th><th>Qty</th>${(mode==='invoice'||mode==='quotation') ? '<th>Price</th><th>Total</th>' : ''}`;
-            
-            let span = (mode==='invoice'||mode==='quotation') ? 6 : 4;
-            document.getElementById("colspanGap").colSpan = span;
-            document.getElementById("colspanGapDisc").colSpan = span;
-            document.getElementById("colspanGapPrev").colSpan = span;
-            document.getElementById("colspanGapGrand").colSpan = span;
-            document.getElementById("colspanGapAdv").colSpan = span;
-            document.getElementById("colspanGapBal").colSpan = span;
-
-            globalSubTotal = 0;
-            cart.forEach((item, i) => {
-                globalSubTotal += item.totalCost;
-                let desc = `${item.room} - ${item.type} (Fab: ${item.fabricNo})`;
-                let row = `<tr><td>${i+1}</td><td>${desc}</td><td>${item.w}x${item.h}</td><td>${item.itemQty}</td>`;
-                if(mode==='invoice'||mode==='quotation') row += `<td>${item.price}</td><td>${item.totalCost}</td>`;
-                tbody.innerHTML += row + "</tr>";
-            });
-            document.getElementById("subTotal").innerText = globalSubTotal.toFixed(2);
-            calculateGrandTotal();
-        }
-    }
-
-    // --- STANDARD FUNCTIONS (Simplified) ---
     function addItem() {
-        let room = document.getElementById("manualRoom").value || document.getElementById("roomSelect").value;
-        let type = document.getElementById("type").value;
-        let fab = document.getElementById("fabricNo").value;
-        let w = parseFloat(document.getElementById("width").value) || 0;
-        let h = parseFloat(document.getElementById("height").value) || 0;
-        let qty = parseInt(document.getElementById("itemQty").value) || 1;
-        let price = parseFloat(document.getElementById("price").value) || 0;
-        let stitch = parseFloat(document.getElementById("stitchCharge").value) || 0;
-        let fix = parseFloat(document.getElementById("fixCharge").value) || 0;
+        let room = document.getElementById("room").value; let type = document.getElementById("type").value; let fab = document.getElementById("fabricNo").value;
+        let qty = parseInt(document.getElementById("itemQty").value)||1; let w = parseFloat(document.getElementById("width").value)||0; let h = parseFloat(document.getElementById("height").value)||0;
+        // PRICE
+        let sellPrice = parseFloat(document.getElementById("price").value)||0;
+        let costPrice = parseFloat(document.getElementById("costPrice").value)||0;
+        let stitch = parseFloat(document.getElementById("stitchCharge").value)||0; let fix = parseFloat(document.getElementById("fixCharge").value)||0;
         
-        // Simple Calc: (Area * Price) + Stitch + Fix. (Adjust area logic as per your need)
-        let area = w * h; // Assuming input is meters. If CM, divide by 10000. 
-        // Based on prev code it was CM input converted to M in logic. Let's assume input is CM:
-        area = (w/100) * (h/100); 
-        if(type.includes("Curtain")) area = (w/100) * 2; // Dummy logic for simplicity, adjust as needed
+        if(!room || !w || !h) {alert("Check inputs"); return;}
         
-        let materialCost = area * price * qty;
-        let total = materialCost + (stitch * qty) + (fix * qty);
+        // CALCULATION (Area in Meters approx)
+        let area = (w * h) / 10000; 
+        if(type.includes("Curtain")) area = (w / 100) * 2.5; // Example logic, adjust as needed
         
-        cart.push({room, type, fabricNo: fab, w: w, h: h, itemQty: qty, price, totalCost: total});
+        let totalSelling = (area * sellPrice * qty) + (stitch * qty) + (fix * qty);
+        let totalBuying = (area * costPrice * qty); // Pure material cost for PO
+
+        cart.push({room, type, fabricNo: fab, w, h, itemQty: qty, price: sellPrice, costPrice: costPrice, totalCost: totalSelling, totalCostPrice: totalBuying});
         renderDraft();
     }
 
     function renderDraft() {
         let tb = document.querySelector("#draftTable tbody"); tb.innerHTML = "";
         cart.forEach((i, idx) => {
-            tb.innerHTML += `<tr><td>${i.type} (${i.fabricNo})</td><td>${i.w}x${i.h}</td><td>${i.totalCost.toFixed(2)}</td><td><button class="btn-close" style="padding:2px 5px;" onclick="deleteItem(${idx})">X</button></td></tr>`;
+            tb.innerHTML += `<tr><td>${i.type}<br><small>${i.fabricNo}</small></td><td>${i.w}x${i.h}</td><td>${i.totalCost.toFixed(2)}</td><td><button onclick="deleteItem(${idx})">X</button></td></tr>`;
         });
     }
     function deleteItem(i) { cart.splice(i, 1); renderDraft(); }
-    
-    function calculateGrandTotal() {
-        let disc = parseFloat(document.getElementById("discountInput").value) || 0;
-        let adv = parseFloat(document.getElementById("advanceInput").value) || 0;
-        let prev = parseFloat(document.getElementById("prevBalanceInput").value) || 0;
+
+    function generateDocument(mode, customCart) {
+        currentMode = mode; let items = customCart || cart;
+        if((mode==='invoice'||mode==='quotation') && items.length===0) {alert("Add items"); return;}
         
-        let grand = (globalSubTotal - disc) + prev;
-        let bal = grand - adv;
+        document.getElementById("editorSection").style.display = "none"; document.getElementById("docView").style.display = "block";
+        document.getElementById("docDate").innerText = new Date().toLocaleDateString();
         
+        // PO Logic
+        if(mode === 'po') {
+            document.getElementById("docTitle").innerText = "PURCHASE ORDER";
+            document.getElementById("docToName").innerText = tempDocData.name; 
+            tempDocData.cart = items; // Save for later
+        } else {
+            document.getElementById("docTitle").innerText = mode.toUpperCase();
+            document.getElementById("docToName").innerText = document.getElementById("custName").value;
+        }
+
+        document.getElementById("docTable").style.display = "table"; 
+        document.getElementById("receiptBox").style.display = "none";
+        document.getElementById("docFooter").style.display = (mode==='po' || mode==='production') ? 'none' : 'table-footer-group';
+
+        let tbody = document.getElementById("docBody"); tbody.innerHTML = ""; 
+        let header = document.getElementById("tableHeaderRow");
+        
+        // Dynamic Header
+        if(mode === 'po') header.innerHTML = `<th>#</th><th>Description</th><th>Size</th><th>Qty</th><th>Cost</th><th>Total</th>`;
+        else header.innerHTML = `<th>#</th><th>Description</th><th>Size</th><th>Qty</th><th>Price</th><th>Total</th>`;
+
+        let total = 0;
+        items.forEach((item, i) => {
+            let price = (mode === 'po') ? item.costPrice : item.price;
+            let lineTotal = (mode === 'po') ? item.totalCostPrice : item.totalCost;
+            total += lineTotal;
+            tbody.innerHTML += `<tr><td>${i+1}</td><td>${item.type} (${item.fabricNo})</td><td>${item.w}x${item.h}</td><td>${item.itemQty}</td><td>${price}</td><td>${lineTotal.toFixed(2)}</td></tr>`;
+        });
+
+        document.getElementById("subTotal").innerText = total.toFixed(2);
+        calculateGrandTotal(total);
+    }
+
+    function calculateGrandTotal(subTotalOverride) {
+        let sub = subTotalOverride || parseFloat(document.getElementById("subTotal").innerText) || 0;
+        let disc = parseFloat(document.getElementById("discountInput").value)||0;
+        let adv = parseFloat(document.getElementById("advanceInput").value)||0;
+        let prev = parseFloat(document.getElementById("prevBalanceInput").value)||0;
+        let grand = (sub - disc) + prev;
         document.getElementById("grandTotal").innerText = grand.toFixed(2);
-        document.getElementById("balanceDue").innerText = bal.toFixed(2);
-        document.getElementById("dispDiscount").innerText = disc.toFixed(2);
-        document.getElementById("dispAdvance").innerText = adv.toFixed(2);
-        document.getElementById("displayPrevBal").innerText = prev.toFixed(2);
-        document.getElementById("amountWords").innerText = numberToWords(bal);
+        document.getElementById("balanceDue").innerText = (grand - adv).toFixed(2);
+        document.getElementById("amountWords").innerText = numberToWords(grand - adv);
     }
 
-    function closeDoc() {
-        document.getElementById("docView").style.display = "none";
-        document.getElementById("editorSection").style.display = "block";
-    }
+    // --- STATEMENT ---
+    function openStatementModal() { populateDatalist(); document.getElementById("statementModal").style.display = "flex"; }
+    function generateStatement() {
+        let type = document.getElementById("stmtType").value;
+        let name = document.getElementById("stmtNameInput").value.trim();
+        let orders = JSON.parse(localStorage.getItem("amsilksSavedOrders") || "[]");
+        let filtered = orders.filter(o => (type==='Customer' ? o.custName : o.suppName).toLowerCase() === name.toLowerCase());
+        
+        if(filtered.length === 0) { alert("No records"); return; }
+        
+        document.getElementById("statementModal").style.display = "none";
+        document.getElementById("editorSection").style.display = "none"; 
+        document.getElementById("docView").style.display = "block";
+        document.getElementById("docTable").style.display = "table";
+        document.getElementById("docFooter").style.display = "none";
+        document.getElementById("receiptBox").style.display = "none";
+        document.getElementById("docTitle").innerText = type.toUpperCase() + " STATEMENT";
+        document.getElementById("docToName").innerText = name;
 
-    function toggleSavedList() {
-        let area = document.getElementById("savedListArea");
-        area.style.display = (area.style.display === "block") ? "none" : "block";
-        if(area.style.display === "block") {
-            let c = document.getElementById("savedItemsContainer");
-            let orders = JSON.parse(localStorage.getItem("amsilksSavedOrders") || "[]");
-            c.innerHTML = "";
-            orders.reverse().forEach(o => {
-                c.innerHTML += `<div class="saved-item"><div><strong>${o.custName||o.suppName}</strong> (${o.recordType})<br>${o.date}</div><div><button class="btn-add" onclick="loadOrder(${o.id})">Load</button></div></div>`;
+        let tbody = document.getElementById("docBody"); 
+        let header = document.getElementById("tableHeaderRow");
+        tbody.innerHTML = "";
+        
+        if(type === 'Customer') {
+            header.innerHTML = `<th>Date</th><th>Type</th><th>Bill (Dr)</th><th>Paid (Cr)</th><th>Balance</th>`;
+            let bal = 0;
+            filtered.forEach(o => {
+                let dr = (o.recordType==='invoice') ? parseFloat(o.grandTotal) : 0;
+                let cr = (o.recordType==='receipt') ? parseFloat(o.grandTotal) : parseFloat(o.advance)||0;
+                bal += (dr - cr);
+                tbody.innerHTML += `<tr><td>${o.date.split(',')[0]}</td><td>${o.recordType}</td><td>${dr||'-'}</td><td>${cr||'-'}</td><td>${bal.toFixed(2)}</td></tr>`;
+            });
+        } else {
+            header.innerHTML = `<th>Date</th><th>Type</th><th>Bill (Cr)</th><th>Paid (Dr)</th><th>Balance</th>`;
+            let bal = 0;
+            filtered.forEach(o => {
+                let bill = (o.recordType==='po') ? parseFloat(o.grandTotal) : 0;
+                let paid = (o.recordType==='payment') ? parseFloat(o.grandTotal) : 0;
+                let disc = (o.recordType==='payment') ? parseFloat(o.discount)||0 : 0;
+                let totalReduction = paid + disc;
+                bal += (bill - totalReduction);
+                tbody.innerHTML += `<tr><td>${o.date.split(',')[0]}</td><td>${o.recordType}</td><td>${bill||'-'}</td><td>${totalReduction||'-'}</td><td>${bal.toFixed(2)}</td></tr>`;
             });
         }
     }
 
-    function loadOrder(id) {
-        if(!confirm("Load?")) return;
-        let orders = JSON.parse(localStorage.getItem("amsilksSavedOrders") || "[]");
-        let o = orders.find(x => x.id === id);
-        if(o) {
-            cart = o.cart || [];
-            document.getElementById("custName").value = o.custName;
-            document.getElementById("custPhone").value = o.custPhone;
-            document.getElementById("advanceInput").value = o.advance;
-            renderDraft();
-            document.getElementById("savedListArea").style.display = "none";
-        }
+    // --- UTILS ---
+    function markSynced(id) { let s=JSON.parse(localStorage.getItem("amsilksSavedOrders")); s.find(x=>x.id==id).isSynced=true; localStorage.setItem("amsilksSavedOrders",JSON.stringify(s)); }
+    function checkPendingSyncs() { document.getElementById("pendingSyncBtn").style.display = JSON.parse(localStorage.getItem("amsilksSavedOrders")||"[]").some(x=>!x.isSynced) ? "block" : "none"; }
+    function syncPendingOrders() { 
+        let p = JSON.parse(localStorage.getItem("amsilksSavedOrders")||"[]").filter(x=>!x.isSynced);
+        p.forEach(o => fetch(SHEET_API_URL, {method:"POST", mode:"no-cors", body:JSON.stringify(o)}).then(()=>markSynced(o.id)));
     }
-
-    function clearData() {
-        if(confirm("Clear?")) {
-            cart = []; document.querySelectorAll("input").forEach(i => i.value="");
-            renderDraft();
-        }
+    function syncFromCloud() {
+        fetch(SHEET_API_URL).then(r=>r.json()).then(data=>{
+            if(!Array.isArray(data)) return;
+            let local = JSON.parse(localStorage.getItem("amsilksSavedOrders")||"[]").filter(x=>!x.isSynced);
+            let cloud = data.map(r=>({ id:r.id, date:r.date, custName:r.custName, suppName:r.suppName, recordType:r.recordType, grandTotal:r.grandTotal, advance:r.advance, discount:r.discount, cart:r.cart, isSynced:true }));
+            localStorage.setItem("amsilksSavedOrders", JSON.stringify([...local, ...cloud]));
+            alert("Synced!");
+        });
     }
-
-    function numberToWords(n) { if(n<=0) return "Zero"; return n + " Only"; } // Short for brevity
-    
-    // UI Helpers
-    function updateRoomOptions() { /* Keep simple logic */ }
-    function checkManualInput(sel, inp) { document.getElementById(inp).style.display = document.getElementById(sel).value==='Other'?'block':'none'; }
-    function checkCustomFullness() { document.getElementById("customFullnessInput").style.display = document.getElementById("fullnessSelect").value==='custom'?'block':'none'; }
-    function toggleFields() { /* Keep simple logic */ }
-    function sendWhatsapp() { 
-        let ph = document.getElementById("custPhone").value;
-        let text = `*${currentMode.toUpperCase()}* for ${document.getElementById("docToName").innerText}. Total: ${document.getElementById("grandTotal").innerText}`;
-        window.open(`https://wa.me/${ph}?text=${text}`, '_blank');
-    }
+    function closeDoc() { document.getElementById("docView").style.display = "none"; document.getElementById("editorSection").style.display = "block"; }
+    function clearData() { if(confirm("Clear?")) { cart=[]; document.querySelectorAll("input").forEach(i=>i.value=""); renderDraft(); } }
+    function numberToWords(n) { return n + " Only"; } // Short placeholder
+    function toggleSavedList() { let d=document.getElementById("savedListArea"); d.style.display=d.style.display==='block'?'none':'block'; if(d.style.display==='block') { document.getElementById("savedItemsContainer").innerHTML = JSON.parse(localStorage.getItem("amsilksSavedOrders")||"[]").reverse().map(o=>`<div class='saved-item'><b>${o.custName||o.suppName}</b> (${o.recordType}) - ${o.grandTotal}</div>`).join(""); } }
+    function toggleFields() {} function updateRoomOptions() {} function checkManualInput() {} function checkCustomFullness() {}
+    function sendWhatsapp() { window.open(`https://wa.me/${document.getElementById("custPhone").value}`, '_blank'); }
 </script>
-
 </body>
 </html>
